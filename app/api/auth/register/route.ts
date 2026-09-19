@@ -109,9 +109,7 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("Registration error:", error);
-    return NextResponse.json(
-      { error: "An unexpected error occurred during registration." },
-      { status: 500 }
-    );
+    const msg = error?.message || "An unexpected error occurred during registration.";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

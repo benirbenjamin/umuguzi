@@ -90,6 +90,7 @@ export async function POST(req: Request) {
     return response;
   } catch (error: any) {
     console.error("Login error:", error);
-    return NextResponse.json({ error: "An unexpected error occurred during login." }, { status: 500 });
+    const msg = error?.message || "An unexpected error occurred during login.";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

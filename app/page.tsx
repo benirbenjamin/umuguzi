@@ -5,25 +5,17 @@ import Footer from "@/components/layout/Footer";
 import VideoCard from "@/components/video/VideoCard";
 import ServiceCard from "@/components/services/ServiceCard";
 import ProductCard from "@/components/products/ProductCard";
+import YouTubeSidebar from "@/components/layout/YouTubeSidebar";
 import prisma from "@/lib/prisma";
 import { VideoItem, ServiceItem, ProductItem } from "@/types";
-import {
-  Flame,
-  Sparkles,
-  Briefcase,
-  Store,
-  Users,
-  MessageSquare,
-  ArrowRight,
-  TrendingUp,
-} from "lucide-react";
+import { Briefcase, Store, ArrowRight, Sparkles } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-// Server-side data fetching with fallback sample data for when DB is fresh
+// Server-side data fetching with fallback sample data for fresh DB
 async function getHomepageData() {
   try {
-    const [videos, categories, services, products, channels, posts] = await Promise.all([
+    const [videos, categories, services, products, channels] = await Promise.all([
       prisma.video.findMany({
         where: { status: "APPROVED" },
         include: {
@@ -42,10 +34,10 @@ async function getHomepageData() {
           },
         },
         orderBy: { createdAt: "desc" },
-        take: 12,
+        take: 32,
       }),
       prisma.category.findMany({
-        take: 10,
+        take: 12,
         orderBy: { name: "asc" },
       }),
       prisma.service.findMany({
@@ -86,16 +78,7 @@ async function getHomepageData() {
       }),
       prisma.channel.findMany({
         orderBy: { subscriberCount: "desc" },
-        take: 6,
-      }),
-      prisma.post.findMany({
-        include: {
-          user: {
-            select: { id: true, displayName: true, username: true, avatar: true },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-        take: 3,
+        take: 10,
       }),
     ]);
 
@@ -111,283 +94,329 @@ async function getHomepageData() {
         images: (p.images as string[]) || [],
       })) as unknown as ProductItem[],
       channels,
-      posts,
     };
-  } catch (error) {
-    console.warn("Database not connected yet or empty, serving default landing data:", error);
+  } catch {
     return {
       videos: [],
       categories: [],
       services: [],
       products: [],
       channels: [],
-      posts: [],
     };
   }
 }
 
-export default async function HomePage() {
-  const { videos, categories, services, products, channels, posts } = await getHomepageData();
+// Default sample videos when database is fresh
+const SAMPLE_VIDEOS: VideoItem[] = [
+  {
+    id: "sample-1",
+    title: "BUZIMA BY ENIHAKORE CHOIR CEP-UR HUYE (Official Video 4K)",
+    description: "Official gospel video by Enihakore Choir in Huye, Rwanda.",
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    thumbnailUrl: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=80",
+    duration: 620,
+    views: 13200,
+    likes: 850,
+    accessType: "PUBLIC",
+    price: 0,
+    status: "APPROVED",
+    isFeatured: true,
+    channelId: "c-1",
+    createdAt: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
+    channel: {
+      id: "c-1",
+      name: "Enihakore Choir CEP-UR",
+      handle: "enihakorechoir",
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80",
+      subscriberCount: 24500,
+      isVerified: true,
+    },
+  },
+  {
+    id: "sample-2",
+    title: "RWANDAN CINEMA: THE PUNISHER WOMAN (Full HD Action Movie)",
+    description: "New Rwandan action drama produced in Kigali.",
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    thumbnailUrl: "https://images.unsplash.com/photo-1485846234645-a62644f84728?w=800&auto=format&fit=crop&q=80",
+    duration: 3937,
+    views: 369000,
+    likes: 14200,
+    accessType: "PUBLIC",
+    price: 0,
+    status: "APPROVED",
+    isFeatured: true,
+    channelId: "c-2",
+    createdAt: new Date(Date.now() - 24 * 3600 * 1000 * 30).toISOString(),
+    channel: {
+      id: "c-2",
+      name: "BigMind Empire Kigali",
+      handle: "bigmindempire",
+      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80",
+      subscriberCount: 112000,
+      isVerified: true,
+    },
+  },
+  {
+    id: "sample-3",
+    title: "UBUMENYI 10 BWA AI BUZAGUKIZA - AI Tools For African Creators",
+    description: "How to use AI film and editing tools to earn in Rwanda.",
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    thumbnailUrl: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80",
+    duration: 890,
+    views: 45000,
+    likes: 3100,
+    accessType: "PUBLIC",
+    price: 0,
+    status: "APPROVED",
+    isFeatured: true,
+    channelId: "c-3",
+    createdAt: new Date(Date.now() - 5 * 3600 * 1000).toISOString(),
+    channel: {
+      id: "c-3",
+      name: "Tech Rwanda Guide",
+      handle: "techrwanda",
+      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80",
+      subscriberCount: 58000,
+      isVerified: true,
+    },
+  },
+  {
+    id: "sample-4",
+    title: "AMABOKO - Live Praise & Worship Night Kigali Arena",
+    description: "Energetic live performance with traditional Rwandan drums.",
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    thumbnailUrl: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800&auto=format&fit=crop&q=80",
+    duration: 495,
+    views: 89000,
+    likes: 6700,
+    accessType: "PUBLIC",
+    price: 0,
+    status: "APPROVED",
+    isFeatured: true,
+    channelId: "c-4",
+    createdAt: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
+    channel: {
+      id: "c-4",
+      name: "Ben & Chance Ministry",
+      handle: "benchanceministry",
+      avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80",
+      subscriberCount: 94000,
+      isVerified: true,
+    },
+  },
+  {
+    id: "sample-5",
+    title: "Kigali 4K Drone Tour: The Greenest & Safest Capital in Africa",
+    description: "Cinematic drone tour across KN 4 Ave, Convention Centre and Nyarutarama.",
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    thumbnailUrl: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&auto=format&fit=crop&q=80",
+    duration: 1240,
+    views: 154000,
+    likes: 9800,
+    accessType: "PUBLIC",
+    price: 0,
+    status: "APPROVED",
+    isFeatured: false,
+    channelId: "c-5",
+    createdAt: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
+    channel: {
+      id: "c-5",
+      name: "Visit Rwanda Media",
+      handle: "visitrwanda",
+      avatar: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&auto=format&fit=crop&q=80",
+      subscriberCount: 180000,
+      isVerified: true,
+    },
+  },
+  {
+    id: "sample-6",
+    title: "Music Production Masterclass: Afrobeat & Amapiano in FL Studio",
+    description: "Kigali sound engineer breaks down a hit beat from start to finish.",
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    thumbnailUrl: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=800&auto=format&fit=crop&q=80",
+    duration: 1580,
+    views: 28400,
+    likes: 2100,
+    accessType: "PUBLIC",
+    price: 0,
+    status: "APPROVED",
+    isFeatured: false,
+    channelId: "c-6",
+    createdAt: new Date(Date.now() - 72 * 3600 * 1000).toISOString(),
+    channel: {
+      id: "c-6",
+      name: "Kigali Sound Lab",
+      handle: "kigalisoundlab",
+      avatar: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=120&auto=format&fit=crop&q=80",
+      subscriberCount: 32000,
+      isVerified: true,
+    },
+  },
+  {
+    id: "sample-7",
+    title: "Intore Cultural Dance & Traditional Rwandan Drums Live",
+    description: "National ballet performance celebrating traditional Rwandan heritage.",
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    thumbnailUrl: "https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=800&auto=format&fit=crop&q=80",
+    duration: 820,
+    views: 73000,
+    likes: 5400,
+    accessType: "PUBLIC",
+    price: 0,
+    status: "APPROVED",
+    isFeatured: false,
+    channelId: "c-7",
+    createdAt: new Date(Date.now() - 96 * 3600 * 1000).toISOString(),
+    channel: {
+      id: "c-7",
+      name: "Rwanda Cultural Heritage",
+      handle: "rwandaculture",
+      avatar: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=120&auto=format&fit=crop&q=80",
+      subscriberCount: 67000,
+      isVerified: true,
+    },
+  },
+  {
+    id: "sample-8",
+    title: "How I Built a 6-Figure Photography Business in Kigali",
+    description: "Commercial photographer shares client acquisition, equipment and pricing in RWF.",
+    videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    thumbnailUrl: "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=800&auto=format&fit=crop&q=80",
+    duration: 1110,
+    views: 41200,
+    likes: 3800,
+    accessType: "PUBLIC",
+    price: 0,
+    status: "APPROVED",
+    isFeatured: false,
+    channelId: "c-8",
+    createdAt: new Date(Date.now() - 120 * 3600 * 1000).toISOString(),
+    channel: {
+      id: "c-8",
+      name: "Eric Photography Rwanda",
+      handle: "ericphoto",
+      avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80",
+      subscriberCount: 42000,
+      isVerified: true,
+    },
+  },
+];
 
-  const trendingVideos = videos.slice(0, 4);
-  const recommendedVideos = videos.slice(4, 12);
+const DEFAULT_CATEGORY_PILLS = [
+  { name: "All", slug: "" },
+  { name: "Music", slug: "music" },
+  { name: "Choirs", slug: "choirs" },
+  { name: "African Music", slug: "african-music" },
+  { name: "Cinema & Movies", slug: "cinema" },
+  { name: "Gospel", slug: "gospel" },
+  { name: "Services", slug: "services" },
+  { name: "Marketplace", slug: "marketplace" },
+  { name: "Tech & AI", slug: "tech" },
+  { name: "Comedy", slug: "comedy" },
+  { name: "Podcasts", slug: "podcasts" },
+  { name: "Live", slug: "live" },
+];
+
+export default async function HomePage() {
+  const { videos, categories, services, products, channels } = await getHomepageData();
+
+  // Combine DB videos with sample videos if DB has few or no records
+  const displayVideos = videos && videos.length > 0 ? videos : SAMPLE_VIDEOS;
+  const pills = categories && categories.length > 0 ? categories : DEFAULT_CATEGORY_PILLS;
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-screen flex flex-col bg-white">
       <Header />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-10">
-        {/* Category Filter Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-          <Link
-            href="/"
-            className="px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold whitespace-nowrap bg-slate-900 text-white shadow-sm"
-          >
-            All Content
-          </Link>
-          {categories.map((cat) => (
+      <div className="flex-1 flex w-full">
+        {/* Left YouTube Sidebar */}
+        <YouTubeSidebar channels={channels} />
+
+        {/* Main Content Area */}
+        <main className="flex-1 min-w-0 px-4 sm:px-6 lg:px-8 py-3 space-y-6">
+          {/* 1. Category Filter Chips (YouTube Style) */}
+          <div className="sticky top-16 z-20 bg-white/95 backdrop-blur-sm py-2 -mx-4 px-4 sm:-mx-6 sm:px-6 border-b border-slate-100 flex items-center gap-2 overflow-x-auto scrollbar-none">
             <Link
-              key={cat.id}
-              href={`/explore?category=${cat.slug}`}
-              className="px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition-colors"
+              href="/"
+              className="px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap bg-slate-900 text-white shadow-xs"
             >
-              {cat.name}
+              All
             </Link>
-          ))}
-          <Link
-            href="/services"
-            className="px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors"
-          >
-            Explore Services 🚀
-          </Link>
-        </div>
-
-        {/* Hero Spotlight / Creator Callout */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-950 via-blue-950 to-slate-900 text-white p-6 sm:p-10 shadow-xl border border-blue-900/40">
-          <div className="relative z-10 max-w-2xl space-y-4">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30 text-xs font-semibold backdrop-blur">
-              <Sparkles className="w-3.5 h-3.5" />
-              Rwanda&apos;s Creative &amp; Services Economy
-            </div>
-            <h1 className="text-2xl sm:text-4xl font-black tracking-tight leading-tight">
-              Watch. Create. Book Services. Monetize Your Talents.
-            </h1>
-            <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-              Explore videos from top Rwandan creators, discover verified local service providers (photography, music, web dev), and sell digital products with direct mobile money &amp; Flutterwave payouts.
-            </p>
-            <div className="flex flex-wrap items-center gap-3 pt-2">
+            {pills.map((cat: any) => (
               <Link
-                href="/explore"
-                className="px-5 py-2.5 rounded-xl bg-brand hover:bg-brand-hover text-white font-bold text-sm shadow-md transition-all flex items-center gap-2"
+                key={cat.slug || cat.name}
+                href={cat.slug === "services" ? "/services" : cat.slug === "marketplace" ? "/products" : `/explore?category=${cat.slug}`}
+                className="px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap bg-slate-100 hover:bg-slate-200 text-slate-800 transition-colors"
               >
-                Watch Trending Videos
-                <ArrowRight className="w-4 h-4" />
+                {cat.name}
               </Link>
-              <Link
-                href="/services"
-                className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-sm backdrop-blur border border-white/20 transition-all flex items-center gap-2"
-              >
-                <Briefcase className="w-4 h-4" />
-                Find Kigali Services
-              </Link>
-            </div>
+            ))}
           </div>
-          {/* Subtle decorative glow */}
-          <div className="absolute right-0 top-0 -mr-16 -mt-16 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
-        </div>
 
-        {/* Section 1: Trending Videos */}
-        {trendingVideos.length > 0 && (
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Flame className="w-5 h-5 text-amber-500" />
-                <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Trending Now</h2>
-              </div>
-              <Link
-                href="/explore?tab=trending"
-                className="text-xs sm:text-sm font-semibold text-brand hover:underline flex items-center gap-1"
-              >
-                View all <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {trendingVideos.map((video) => (
+          {/* 2. YouTube Video Feed: 4 Videos Per Row on Desktop */}
+          <section>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-x-4 gap-y-8">
+              {displayVideos.map((video) => (
                 <VideoCard key={video.id} video={video} />
               ))}
             </div>
           </section>
-        )}
 
-        {/* Section 2: Services Marketplace Spotlight */}
-        {services.length > 0 && (
-          <section className="space-y-4 pt-4 border-t border-slate-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Briefcase className="w-5 h-5 text-brand" />
-                <div>
-                  <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
-                    Top Professional &amp; Local Services
+          {/* 3. In-Feed Shelf: Services in Kigali & Rwanda */}
+          {services && services.length > 0 && (
+            <section className="pt-6 border-t border-slate-100 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Briefcase className="w-5 h-5 text-brand" />
+                  <h2 className="text-lg sm:text-xl font-bold text-slate-900">
+                    Services Spotlight &bull; Kigali &amp; Rwanda
                   </h2>
-                  <p className="text-xs text-slate-500">
-                    Book verified Rwandan videographers, developers, event planners &amp; sound engineers
-                  </p>
                 </div>
-              </div>
-              <Link
-                href="/services"
-                className="text-xs sm:text-sm font-semibold text-brand hover:underline flex items-center gap-1"
-              >
-                All Services <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {services.map((service) => (
-                <ServiceCard key={service.id} service={service} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Section 3: Recommended Videos */}
-        <section className="space-y-4 pt-4 border-t border-slate-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-emerald-500" />
-              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Recommended For You</h2>
-            </div>
-            <Link
-              href="/explore"
-              className="text-xs sm:text-sm font-semibold text-brand hover:underline flex items-center gap-1"
-            >
-              Explore all <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-          {recommendedVideos.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {recommendedVideos.map((video) => (
-                <VideoCard key={video.id} video={video} />
-              ))}
-            </div>
-          ) : (
-            <div className="p-8 text-center bg-white rounded-2xl border border-slate-200">
-              <p className="text-sm text-slate-500">Explore our initial video catalog.</p>
-              <Link href="/studio/upload" className="mt-3 inline-block px-4 py-2 bg-brand text-white rounded-xl text-xs font-semibold">
-                Upload First Video
-              </Link>
-            </div>
-          )}
-        </section>
-
-        {/* Section 4: Digital Marketplace Products */}
-        {products.length > 0 && (
-          <section className="space-y-4 pt-4 border-t border-slate-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Store className="w-5 h-5 text-purple-600" />
-                <div>
-                  <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
-                    Digital Marketplace
-                  </h2>
-                  <p className="text-xs text-slate-500">
-                    Courses, video presets, sound packs, ebooks &amp; software downloads
-                  </p>
-                </div>
-              </div>
-              <Link
-                href="/products"
-                className="text-xs sm:text-sm font-semibold text-brand hover:underline flex items-center gap-1"
-              >
-                Browse Store <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-              {products.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Section 5: Featured Creators & Channels */}
-        {channels.length > 0 && (
-          <section className="space-y-4 pt-4 border-t border-slate-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5 text-indigo-500" />
-                <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
-                  Featured Creators &amp; Channels
-                </h2>
-              </div>
-              <Link
-                href="/channels"
-                className="text-xs sm:text-sm font-semibold text-brand hover:underline flex items-center gap-1"
-              >
-                View all <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-              {channels.map((chan) => (
                 <Link
-                  key={chan.id}
-                  href={`/channel/${chan.handle}`}
-                  className="flex flex-col items-center p-4 bg-white rounded-2xl border border-slate-200 hover:border-brand hover:shadow-md transition-all text-center group"
+                  href="/services"
+                  className="text-xs sm:text-sm font-semibold text-brand hover:underline flex items-center gap-1"
                 >
-                  {chan.avatar ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={chan.avatar}
-                      alt={chan.name}
-                      className="w-16 h-16 rounded-full object-cover mb-3 border-2 border-slate-100 group-hover:border-brand transition-colors"
-                    />
-                  ) : (
-                    <div className="w-16 h-16 rounded-full bg-brand text-white flex items-center justify-center font-bold text-lg mb-3">
-                      {chan.name.charAt(0)}
-                    </div>
-                  )}
-                  <span className="text-xs font-bold text-slate-900 group-hover:text-brand line-clamp-1">
-                    {chan.name}
-                  </span>
-                  <span className="text-[11px] text-slate-400 mt-0.5">
-                    {chan.subscriberCount} subs
-                  </span>
+                  See all services <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Section 6: Community Posts Feed Snippet */}
-        {posts.length > 0 && (
-          <section className="space-y-4 pt-4 border-t border-slate-200 pb-8">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-sky-500" />
-                <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">Community Discussions</h2>
               </div>
-              <Link
-                href="/posts"
-                className="text-xs sm:text-sm font-semibold text-brand hover:underline flex items-center gap-1"
-              >
-                Join conversation <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {posts.map((post) => (
-                <div key={post.id} className="p-4 bg-white rounded-2xl border border-slate-200 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-brand/10 text-brand flex items-center justify-center font-bold text-xs">
-                      {post.user.displayName.charAt(0)}
-                    </div>
-                    <span className="text-xs font-bold text-slate-800">{post.user.displayName}</span>
-                  </div>
-                  <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">{post.content}</p>
+
+              {/* 4 Items per row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                {services.map((service) => (
+                  <ServiceCard key={service.id} service={service} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* 4. In-Feed Shelf: Digital Marketplace Products */}
+          {products && products.length > 0 && (
+            <section className="pt-6 border-t border-slate-100 space-y-3 pb-8">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Store className="w-5 h-5 text-purple-600" />
+                  <h2 className="text-lg sm:text-xl font-bold text-slate-900">
+                    Digital Store &bull; LUTs, Beats, Software &amp; Presets
+                  </h2>
                 </div>
-              ))}
-            </div>
-          </section>
-        )}
-      </main>
+                <Link
+                  href="/products"
+                  className="text-xs sm:text-sm font-semibold text-brand hover:underline flex items-center gap-1"
+                >
+                  Browse marketplace <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+
+              {/* 4 Items per row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                {products.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            </section>
+          )}
+        </main>
+      </div>
 
       <Footer />
     </div>

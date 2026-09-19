@@ -150,13 +150,6 @@ function LoginForm() {
             </button>
           </form>
 
-          {/* Seed demo credentials helper */}
-          <div className="mt-6 pt-4 border-t border-slate-100 bg-slate-50 p-3 rounded-xl text-[11px] text-slate-600 space-y-1">
-            <p className="font-bold text-slate-700">Quick Test Credentials:</p>
-            <p>Admin: <code className="text-brand font-mono font-semibold">admin@umuguzipro.com</code> / <code className="text-brand font-mono font-semibold">Admin@123456</code></p>
-            <p>Creator: <code className="text-brand font-mono font-semibold">creator@umuguzipro.com</code> / <code className="text-brand font-mono font-semibold">Creator@123456</code></p>
-          </div>
-
           <div className="mt-6 text-center text-xs text-slate-500">
             Don&apos;t have an account?{" "}
             <Link href="/register" className="font-bold text-brand hover:underline">
