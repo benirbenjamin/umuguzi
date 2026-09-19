@@ -107,7 +107,7 @@ async function getHomepageData() {
 }
 
 // Default sample videos when database is fresh
-const SAMPLE_VIDEOS: VideoItem[] = [
+const SAMPLE_VIDEOS: any[] = [
   {
     id: "sample-1",
     title: "BUZIMA BY ENIHAKORE CHOIR CEP-UR HUYE (Official Video 4K)",

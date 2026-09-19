@@ -58,19 +58,20 @@ export interface SiteSettings {
 export interface VideoItem {
   id: string;
   title: string;
-  slug: string;
+  slug?: string;
   description?: string | null;
   videoUrl: string;
   thumbnailUrl?: string | null;
   duration: number;
-  accessType: 'PUBLIC' | 'PRIVATE' | 'PREMIUM';
-  accessLevel: 'ALL' | 'MEMBERS' | 'PREMIUM';
-  price: number;
+  accessType?: 'PUBLIC' | 'PRIVATE' | 'PREMIUM';
+  accessLevel?: 'ALL' | 'MEMBERS' | 'PREMIUM';
+  price?: number;
   views: number;
   likes: number;
-  dislikes: number;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
-  isFeatured: boolean;
+  dislikes?: number;
+  status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+  isFeatured?: boolean;
+  channelId?: string;
   createdAt: string | Date;
   channel: {
     id: string;
@@ -78,13 +79,15 @@ export interface VideoItem {
     handle: string;
     avatar?: string | null;
     subscriberCount: number;
-    isVerified: boolean;
+    isVerified?: boolean;
+    [key: string]: any;
   };
   category?: {
     id: string;
     name: string;
     slug: string;
   } | null;
+  [key: string]: any;
 }
 
 export interface ServiceItem {
