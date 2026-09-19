@@ -10,7 +10,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { displayName, bio, phone, country, city, website, avatar, socials } = body;
+    const { displayName, bio, phone, country, city, website, avatar, socials, twoFactorEnabled } = body;
 
     const updated = await prisma.user.update({
       where: { id: user.id },
@@ -23,6 +23,7 @@ export async function POST(req: Request) {
         website: website !== undefined ? website.trim() : undefined,
         avatar: avatar !== undefined ? avatar : undefined,
         socials: socials || undefined,
+        twoFactorEnabled: typeof twoFactorEnabled === "boolean" ? twoFactorEnabled : undefined,
       },
     });
 

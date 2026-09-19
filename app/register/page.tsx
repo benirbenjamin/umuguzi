@@ -9,7 +9,7 @@ import { useApp } from "@/components/providers/AppProviders";
 function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { settings, t } = useApp();
+  const { settings, refreshUser, t } = useApp();
 
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
@@ -47,7 +47,13 @@ function RegisterForm() {
         throw new Error(data.error || "Registration failed");
       }
 
-      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+      if (data.requiresVerification === false) {
+        await refreshUser();
+        const redirectParam = searchParams.get("redirect") || "/dashboard";
+        router.push(redirectParam);
+      } else {
+        router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {

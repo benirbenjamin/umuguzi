@@ -31,6 +31,8 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   manual_payment_account_number: "00012345678 (BK) / +250 788 000 111 (MTN MoMo)",
   storage_provider: "VERCEL_BLOB", // VERCEL_BLOB, AWS_S3, CLOUDFLARE_R2
   maintenance_mode: "false",
+  two_factor_enabled: "false",
+  email_verification_enabled: "false",
 };
 
 let cachedSettings: SiteSettings | null = null;

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { verifyPassword, generateSixDigitCode, signToken } from "@/lib/auth";
-import { sendEmail, getTwoFactorEmailTemplate } from "@/lib/email";
+import { verifyPassword, generateSixDigitCode, signToken, SESSION_COOKIE_NAME } from "@/lib/auth";
+import { sendEmail, sendEmailDetailed, getTwoFactorEmailTemplate } from "@/lib/email";
 import { getSiteSettings } from "@/lib/settings";
 
 export async function POST(req: Request) {
@@ -45,7 +45,54 @@ export async function POST(req: Request) {
       );
     }
 
-    // Two-Factor Authentication Flow
+    const settings = await getSiteSettings();
+
+    // Auto-verify user if email verification is disabled on the platform
+    if (!user.isVerified && settings.email_verification_enabled !== "true") {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { isVerified: true },
+      });
+      user.isVerified = true;
+    }
+
+    // 2FA Bypass: When twoFactorEnabled is false in database or disabled globally
+    // 2FA is ONLY enforced if the user explicitly has it turned on AND platform has it enabled
+    const isTwoFactorRequired = Boolean(user.twoFactorEnabled) && settings.two_factor_enabled === "true";
+
+    if (!isTwoFactorRequired) {
+      // Direct session login bypassing 2FA
+      const sessionToken = signToken({ userId: user.id }, "7d");
+
+      const response = NextResponse.json({
+        success: true,
+        requires2FA: false,
+        message: "Login successful.",
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          displayName: user.displayName,
+          role: user.role,
+          avatar: user.avatar,
+          isVerified: user.isVerified,
+          twoFactorEnabled: user.twoFactorEnabled,
+          referralCode: user.referralCode,
+        },
+      });
+
+      response.cookies.set(SESSION_COOKIE_NAME, sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7,
+      });
+
+      return response;
+    }
+
+    // Two-Factor Authentication Flow (when 2FA is active)
     const twoFactorCode = generateSixDigitCode();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
@@ -60,8 +107,7 @@ export async function POST(req: Request) {
     });
 
     // Send 2FA code via email
-    const settings = await getSiteSettings();
-    await sendEmail({
+    const emailDispatch = await sendEmailDetailed({
       to: user.email,
       subject: `Your ${settings.app_name} Login 2FA Code: ${twoFactorCode}`,
       html: getTwoFactorEmailTemplate(twoFactorCode, settings.app_name),
@@ -74,8 +120,12 @@ export async function POST(req: Request) {
     const response = NextResponse.json({
       success: true,
       requires2FA: true,
+      emailSent: emailDispatch.success,
+      emailError: !emailDispatch.success ? emailDispatch.error : undefined,
       email: user.email.replace(/(.{2})(.*)(?=@)/, (_m, p1, p2) => p1 + "*".repeat(p2.length)),
-      message: "Password verified. A 6-digit 2FA code has been sent to your email.",
+      message: emailDispatch.success
+        ? "Password verified. A 6-digit 2FA code has been sent to your email."
+        : "Password verified, but email dispatch failed. Please check Resend/SMTP settings or contact support.",
     });
 
     // Set pending 2FA cookie

@@ -11,6 +11,9 @@ import {
   AlertCircle,
   Image as ImageIcon,
   Smartphone,
+  Shield,
+  Send,
+  Loader2,
 } from "lucide-react";
 import { useApp } from "@/components/providers/AppProviders";
 import { SiteSettings } from "@/types";
@@ -18,11 +21,33 @@ import { SiteSettings } from "@/types";
 export default function SettingsClient({ initialSettings }: { initialSettings: SiteSettings }) {
   const { updateLocalSettings } = useApp();
   const [formData, setFormData] = useState<SiteSettings>(initialSettings);
-  const [activeTab, setActiveTab] = useState<"branding" | "contacts" | "payments" | "storage">("branding");
+  const [activeTab, setActiveTab] = useState<"branding" | "contacts" | "payments" | "storage" | "security">("branding");
   const [loading, setLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [testEmailRecipient, setTestEmailRecipient] = useState("");
+  const [testingEmail, setTestingEmail] = useState(false);
+  const [testEmailResult, setTestEmailResult] = useState<any>(null);
+
+  const handleTestEmail = async () => {
+    if (!testEmailRecipient) return;
+    setTestingEmail(true);
+    setTestEmailResult(null);
+    try {
+      const res = await fetch("/api/admin/test-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recipientEmail: testEmailRecipient }),
+      });
+      const data = await res.json();
+      setTestEmailResult(data);
+    } catch (err: any) {
+      setTestEmailResult({ success: false, error: err.message });
+    } finally {
+      setTestingEmail(false);
+    }
+  };
 
   const handleChange = (field: keyof SiteSettings, value: string) => {
     setFormData((prev: SiteSettings) => ({ ...prev, [field]: value }));
@@ -136,6 +161,18 @@ export default function SettingsClient({ initialSettings }: { initialSettings: S
         >
           <HardDrive className="w-4 h-4" />
           Cloud Storage
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("security")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            activeTab === "security"
+              ? "bg-slate-900 text-white shadow-sm"
+              : "text-slate-600 hover:bg-slate-200"
+          }`}
+        >
+          <Shield className="w-4 h-4" />
+          Security &amp; Auth
         </button>
       </div>
 
@@ -558,6 +595,127 @@ export default function SettingsClient({ initialSettings }: { initialSettings: S
               <p className="text-xs text-slate-500 mt-2 leading-relaxed">
                 Configure your respective environment credentials in <code>.env</code> (e.g. <code>BLOB_READ_WRITE_TOKEN</code> for Vercel Blob, or <code>STORAGE_ACCESS_KEY</code> for AWS/R2).
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 5: Security & Authentication */}
+        {activeTab === "security" && (
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+            <div>
+              <h3 className="font-extrabold text-base text-slate-900">
+                Security, Two-Factor &amp; Account Verification
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Control login friction, 2FA bypass behavior, and test outbound email connectivity.
+              </p>
+            </div>
+
+            {/* 2FA Bypass Toggle */}
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h4 className="font-bold text-sm text-slate-900">Two-Factor Authentication (2FA) Globally</h4>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    When <strong>Disabled</strong>, users bypass 2FA upon login and authenticate immediately with their password.
+                  </p>
+                </div>
+                <select
+                  value={formData.two_factor_enabled || "false"}
+                  onChange={(e) => handleChange("two_factor_enabled", e.target.value)}
+                  className="text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-300 bg-white shrink-0"
+                >
+                  <option value="false">Disabled (Bypass 2FA for all users)</option>
+                  <option value="true">Enabled (Require 6-digit email code)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Email Verification Toggle */}
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h4 className="font-bold text-sm text-slate-900">Email Verification for New Signups</h4>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    When <strong>Disabled</strong>, newly registered users are automatically verified and log in directly without requiring an email code.
+                  </p>
+                </div>
+                <select
+                  value={formData.email_verification_enabled || "false"}
+                  onChange={(e) => handleChange("email_verification_enabled", e.target.value)}
+                  className="text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-300 bg-white shrink-0"
+                >
+                  <option value="false">Disabled (Auto-verify accounts immediately)</option>
+                  <option value="true">Enabled (Require email verification)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Outbound Email Diagnostics & Tester */}
+            <div className="p-5 rounded-2xl bg-blue-50/60 border border-blue-100 space-y-4">
+              <div>
+                <h4 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-brand" /> Outbound Email Tester &amp; Resend Diagnostics
+                </h4>
+                <p className="text-xs text-slate-500 mt-1">
+                  Send a live test email to verify whether Resend or SMTP is correctly dispatching messages from your server.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="email"
+                  value={testEmailRecipient}
+                  onChange={(e) => setTestEmailRecipient(e.target.value)}
+                  placeholder="Enter email address to receive test (e.g. benirabok@gmail.com)"
+                  className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-brand"
+                />
+                <button
+                  type="button"
+                  onClick={handleTestEmail}
+                  disabled={testingEmail || !testEmailRecipient}
+                  className="px-4 py-2.5 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 disabled:opacity-50 transition-all shrink-0 shadow-sm"
+                >
+                  {testingEmail ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
+                  <span>{testingEmail ? "Sending Test..." : "Send Test Email"}</span>
+                </button>
+              </div>
+
+              {testEmailResult && (
+                <div
+                  className={`p-4 rounded-xl text-xs space-y-2 border ${
+                    testEmailResult.success
+                      ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+                      : "bg-red-50 border-red-200 text-red-800"
+                  }`}
+                >
+                  <div className="font-bold flex items-center gap-2">
+                    {testEmailResult.success ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                    )}
+                    <span>
+                      {testEmailResult.success
+                        ? `Test Email Sent Successfully via ${testEmailResult.provider?.toUpperCase()}! (Message ID: ${testEmailResult.messageId})`
+                        : `Email Delivery Failed: ${testEmailResult.error || "Unknown error"}`}
+                    </span>
+                  </div>
+
+                  {testEmailResult.diagnostic && (
+                    <div className="text-[11px] font-mono bg-white/80 p-3 rounded-lg border border-slate-200 space-y-1 mt-2 text-slate-700">
+                      <div>Sender Address: <strong>{testEmailResult.diagnostic.configuredSender}</strong></div>
+                      <div>Resend Key: <strong>{testEmailResult.diagnostic.hasResendKey ? `Active (${testEmailResult.diagnostic.resendKeyPrefix})` : "Missing (RESEND_API_KEY)"}</strong></div>
+                      <div>SMTP Fallback: <strong>{testEmailResult.diagnostic.hasSmtp ? "Configured" : "Not configured"}</strong></div>
+                      {!testEmailResult.success && (
+                        <div className="text-amber-700 font-sans mt-2 pt-2 border-t border-slate-200 leading-relaxed">
+                          💡 <strong>Resend Sandbox Notice:</strong> With unverified custom domains, Resend sandbox only permits sending from <code>onboarding@resend.dev</code> directly to your Resend account owner email. To send to any recipient, verify your domain at <strong>resend.com/domains</strong>.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -2,44 +2,89 @@ import nodemailer from "nodemailer";
 import { Resend } from "resend";
 
 const resendApiKey = process.env.RESEND_API_KEY;
-const resend = resendApiKey ? new Resend(resendApiKey) : null;
-const EMAIL_FROM = process.env.EMAIL_FROM || "Umuguzipro <noreply@umuguzi.pro>";
+const resend = resendApiKey && resendApiKey.startsWith("re_") ? new Resend(resendApiKey) : null;
+const DEFAULT_FROM = "Umuguzipro <onboarding@resend.dev>";
+const EMAIL_FROM = process.env.EMAIL_FROM || DEFAULT_FROM;
 
 export interface SendEmailOptions {
   to: string;
   subject: string;
   html: string;
   text?: string;
+  from?: string;
 }
 
-export async function sendEmail({ to, subject, html, text }: SendEmailOptions): Promise<boolean> {
-  // Always log code in development console for instant developer convenience
-  if (process.env.NODE_ENV !== "production") {
-    console.log(`\n================== [EMAIL DISPATCH] ==================`);
-    console.log(`To: ${to}`);
-    console.log(`Subject: ${subject}`);
-    console.log(`Content:\n${text || html.replace(/<[^>]+>/g, " ")}`);
-    console.log(`======================================================\n`);
-  }
+export interface EmailDeliveryResult {
+  success: boolean;
+  provider?: "resend" | "smtp" | "console";
+  messageId?: string;
+  error?: string;
+}
+
+export async function sendEmailDetailed({ to, subject, html, text, from }: SendEmailOptions): Promise<EmailDeliveryResult> {
+  // Always log email dispatch to server console for tracking & debugging
+  console.log(`\n================== [EMAIL DISPATCH] ==================`);
+  console.log(`To: ${to}`);
+  console.log(`Subject: ${subject}`);
+  console.log(`Content Summary:\n${text || html.replace(/<[^>]+>/g, " ").slice(0, 160)}...`);
+  console.log(`======================================================\n`);
+
+  const primaryFrom = from || EMAIL_FROM;
+  let lastError = "";
 
   // 1. Try Resend if configured
-  if (resend && resendApiKey && resendApiKey.startsWith("re_")) {
+  if (resend) {
     try {
+      // Primary attempt with configured sender
       const response = await resend.emails.send({
-        from: EMAIL_FROM,
+        from: primaryFrom,
         to: [to],
         subject,
         html,
         text,
       });
-      if (response.data?.id) return true;
-    } catch (err) {
-      console.warn("Resend email delivery failed, checking SMTP fallback:", err);
+
+      if (response.data?.id) {
+        console.log(`[Resend Success] Email sent to ${to} (ID: ${response.data.id}) via ${primaryFrom}`);
+        return { success: true, provider: "resend", messageId: response.data.id };
+      }
+
+      if (response.error) {
+        lastError = response.error.message || JSON.stringify(response.error);
+        console.warn(`[Resend Warning] Primary delivery via "${primaryFrom}" failed:`, lastError);
+
+        // If domain is not verified, retry with Resend's default verified sandbox domain: onboarding@resend.dev
+        if (primaryFrom !== DEFAULT_FROM) {
+          console.log(`[Resend] Retrying delivery using fallback verified address: ${DEFAULT_FROM}`);
+          const retryResponse = await resend.emails.send({
+            from: DEFAULT_FROM,
+            to: [to],
+            subject,
+            html,
+            text,
+          });
+
+          if (retryResponse.data?.id) {
+            console.log(`[Resend Success] Fallback sent to ${to} (ID: ${retryResponse.data.id}) via ${DEFAULT_FROM}`);
+            return { success: true, provider: "resend", messageId: retryResponse.data.id };
+          }
+
+          if (retryResponse.error) {
+            lastError = retryResponse.error.message || JSON.stringify(retryResponse.error);
+            console.error(`[Resend Fallback Error]:`, lastError);
+          }
+        }
+      }
+    } catch (err: any) {
+      lastError = err?.message || String(err);
+      console.error("[Resend Exception]:", lastError);
     }
+  } else {
+    console.warn("[Email] RESEND_API_KEY is not set or invalid.");
   }
 
   // 2. Try Nodemailer SMTP if configured
-  if (process.env.SMTP_HOST && process.env.SMTP_USER) {
+  if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASSWORD) {
     try {
       const transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST,
@@ -51,21 +96,38 @@ export async function sendEmail({ to, subject, html, text }: SendEmailOptions): 
         },
       });
 
-      await transporter.sendMail({
-        from: EMAIL_FROM,
+      const info = await transporter.sendMail({
+        from: primaryFrom,
         to,
         subject,
         html,
         text,
       });
-      return true;
-    } catch (err) {
-      console.warn("SMTP email delivery failed:", err);
+
+      console.log(`[SMTP Success] Email sent to ${to} (ID: ${info.messageId})`);
+      return { success: true, provider: "smtp", messageId: info.messageId };
+    } catch (err: any) {
+      lastError = err?.message || String(err);
+      console.warn("[SMTP Error]:", lastError);
     }
   }
 
-  // If no external keys, return true in development mode (logged to console)
-  return true;
+  // Fallback diagnostic
+  if (!resend && !process.env.SMTP_HOST) {
+    lastError = "Neither RESEND_API_KEY nor SMTP credentials are configured in environment variables.";
+  }
+
+  console.error(`[Email Delivery Failure] Could not send to ${to}. Reason: ${lastError}`);
+  return {
+    success: false,
+    provider: "console",
+    error: lastError,
+  };
+}
+
+export async function sendEmail(options: SendEmailOptions): Promise<boolean> {
+  const result = await sendEmailDetailed(options);
+  return result.success;
 }
 
 // -----------------------------------------------------------------------------

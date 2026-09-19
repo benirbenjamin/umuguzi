@@ -7,7 +7,7 @@ console.log("=======================================================\n");
 // 1. Generate Prisma Client
 console.log("Step 1: Generating Prisma Client...");
 try {
-  execSync("npx prisma generate", { stdio: "inherit" });
+  execSync("npx --yes prisma generate", { stdio: "inherit" });
 } catch (err) {
   console.error("Prisma generate failed:", err.message);
   process.exit(1);
@@ -17,7 +17,7 @@ try {
 if (process.env.DATABASE_URL) {
   console.log("\nStep 2: Synchronizing PostgreSQL schema with prisma db push...");
   try {
-    execSync("npx prisma db push --skip-generate --accept-data-loss", { stdio: "inherit" });
+    execSync("npx --yes prisma db push --skip-generate --accept-data-loss", { stdio: "inherit" });
     console.log("✅ Database tables successfully synchronized.");
   } catch (err) {
     console.warn("⚠️ Note: prisma db push skipped or deferred:", err.message);

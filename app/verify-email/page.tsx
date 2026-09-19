@@ -74,7 +74,11 @@ function VerifyEmailForm() {
         throw new Error(data.error || "Failed to resend code");
       }
 
-      setResendMessage("A fresh 6-digit verification code has been dispatched to your email.");
+      if (data.emailSent === false) {
+        setError(data.message || "Could not dispatch verification email. Please contact support.");
+      } else {
+        setResendMessage(data.message || "A fresh 6-digit verification code has been dispatched to your email.");
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {

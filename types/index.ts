@@ -53,6 +53,8 @@ export interface SiteSettings {
   manual_payment_account_number: string;
   storage_provider: string; // VERCEL_BLOB, AWS_S3, CLOUDFLARE_R2
   maintenance_mode: string;
+  two_factor_enabled?: string;
+  email_verification_enabled?: string;
 }
 
 export interface VideoItem {

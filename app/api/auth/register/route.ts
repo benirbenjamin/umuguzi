@@ -1,13 +1,49 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { hashPassword, generateSixDigitCode } from "@/lib/auth";
-import { sendEmail, getVerificationEmailTemplate } from "@/lib/email";
+import { hashPassword, generateSixDigitCode, signToken, SESSION_COOKIE_NAME } from "@/lib/auth";
+import { sendEmailDetailed, getVerificationEmailTemplate } from "@/lib/email";
 import { getSiteSettings } from "@/lib/settings";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { email, username, displayName, password, ref } = body;
+    const { email, username, displayName, password, ref, resendOnly } = body;
+
+    // Handle resend request if requested
+    if (resendOnly && email) {
+      const cleanEmail = email.toLowerCase().trim();
+      const existingUser = await prisma.user.findUnique({ where: { email: cleanEmail } });
+      if (!existingUser) {
+        return NextResponse.json({ error: "User not found." }, { status: 404 });
+      }
+
+      const newCode = generateSixDigitCode();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+      await prisma.emailVerificationCode.create({
+        data: {
+          userId: existingUser.id,
+          code: newCode,
+          expiresAt,
+        },
+      });
+
+      const settings = await getSiteSettings();
+      const emailDispatch = await sendEmailDetailed({
+        to: cleanEmail,
+        subject: `Your ${settings.app_name} Verification Code: ${newCode}`,
+        html: getVerificationEmailTemplate(newCode, settings.app_name),
+        text: `Your ${settings.app_name} verification code is: ${newCode}`,
+      });
+
+      return NextResponse.json({
+        success: true,
+        emailSent: emailDispatch.success,
+        message: emailDispatch.success
+          ? "A new verification code has been dispatched to your email."
+          : "Verification code generated, but email delivery failed. Please check Resend configuration.",
+      });
+    }
 
     if (!email || !username || !displayName || !password) {
       return NextResponse.json(
@@ -60,6 +96,8 @@ export async function POST(req: Request) {
       }
     }
 
+    const settings = await getSiteSettings();
+    const isVerificationRequired = settings.email_verification_enabled === "true";
     const passwordHash = await hashPassword(password);
     const verificationCode = generateSixDigitCode();
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
@@ -71,8 +109,8 @@ export async function POST(req: Request) {
         username: cleanUsername,
         displayName: displayName.trim(),
         passwordHash,
-        isVerified: false,
-        twoFactorEnabled: true,
+        isVerified: !isVerificationRequired, // Auto-verified if verification is disabled!
+        twoFactorEnabled: false, // Default to false!
         referredById: referrerId,
         wallet: {
           create: {
@@ -83,18 +121,52 @@ export async function POST(req: Request) {
             currency: "RWF",
           },
         },
-        emailCodes: {
-          create: {
-            code: verificationCode,
-            expiresAt,
-          },
-        },
+        ...(isVerificationRequired
+          ? {
+              emailCodes: {
+                create: {
+                  code: verificationCode,
+                  expiresAt,
+                },
+              },
+            }
+          : {}),
       },
     });
 
-    // Send verification email
-    const settings = await getSiteSettings();
-    await sendEmail({
+    // If verification is disabled on platform, sign in user immediately!
+    if (!isVerificationRequired) {
+      const sessionToken = signToken({ userId: user.id }, "7d");
+      const response = NextResponse.json({
+        success: true,
+        requiresVerification: false,
+        message: "Registration successful. Welcome to Umuguzipro!",
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          displayName: user.displayName,
+          role: user.role,
+          avatar: user.avatar,
+          isVerified: user.isVerified,
+          twoFactorEnabled: user.twoFactorEnabled,
+          referralCode: user.referralCode,
+        },
+      });
+
+      response.cookies.set(SESSION_COOKIE_NAME, sessionToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7,
+      });
+
+      return response;
+    }
+
+    // Send verification email (when email verification is enabled)
+    const emailDispatch = await sendEmailDetailed({
       to: cleanEmail,
       subject: `Your ${settings.app_name} Verification Code: ${verificationCode}`,
       html: getVerificationEmailTemplate(verificationCode, settings.app_name),
@@ -103,7 +175,12 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Registration successful. Please enter the 6-digit verification code sent to your email.",
+      requiresVerification: true,
+      emailSent: emailDispatch.success,
+      emailError: !emailDispatch.success ? emailDispatch.error : undefined,
+      message: emailDispatch.success
+        ? "Registration successful. Please enter the 6-digit verification code sent to your email."
+        : "Registration successful, but verification email could not be sent. Please contact support or check Resend domain verification.",
       email: cleanEmail,
       userId: user.id,
     });

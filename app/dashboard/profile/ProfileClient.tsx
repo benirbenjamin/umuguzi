@@ -1,24 +1,47 @@
 "use client";
 
 import React, { useState } from "react";
-import { User, Phone, MapPin, Globe, CheckCircle2, AlertCircle, Image as ImageIcon, Lock, KeyRound } from "lucide-react";
+import { User, Phone, MapPin, Globe, CheckCircle2, AlertCircle, Image as ImageIcon, Lock, KeyRound, ShieldCheck } from "lucide-react";
 import { useApp } from "@/components/providers/AppProviders";
 
 export default function ProfileClient({ profile }: { profile: any }) {
   const { refreshUser } = useApp();
 
-  const [displayName, setDisplayName] = useState(profile.displayName || "");
-  const [bio, setBio] = useState(profile.bio || "");
-  const [phone, setPhone] = useState(profile.phone || "");
-  const [city, setCity] = useState(profile.city || "Kigali");
-  const [country, setCountry] = useState(profile.country || "Rwanda");
-  const [website, setWebsite] = useState(profile.website || "");
-  const [avatar, setAvatar] = useState(profile.avatar || "");
+  const [displayName, setDisplayName] = useState(profile?.displayName || "");
+  const [bio, setBio] = useState(profile?.bio || "");
+  const [phone, setPhone] = useState(profile?.phone || "");
+  const [city, setCity] = useState(profile?.city || "Kigali");
+  const [country, setCountry] = useState(profile?.country || "Rwanda");
+  const [website, setWebsite] = useState(profile?.website || "");
+  const [avatar, setAvatar] = useState(profile?.avatar || "");
 
   const [loading, setLoading] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+
+  // 2FA state
+  const [twoFactor, setTwoFactor] = useState(Boolean(profile?.twoFactorEnabled));
+  const [toggling2FA, setToggling2FA] = useState(false);
+
+  const handleToggle2FA = async () => {
+    setToggling2FA(true);
+    try {
+      const res = await fetch("/api/dashboard/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ twoFactorEnabled: !twoFactor }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update 2FA");
+      setTwoFactor(!twoFactor);
+      await refreshUser();
+    } catch (err: any) {
+      setPasswordError(err.message);
+    } finally {
+      setToggling2FA(false);
+    }
+  };
 
   // Password change state
   const [currentPassword, setCurrentPassword] = useState("");
@@ -340,6 +363,36 @@ export default function ProfileClient({ profile }: { profile: any }) {
             {passwordLoading ? "Updating Password..." : "Update Password"}
           </button>
         </form>
+
+        {/* Two-Factor Authentication Control */}
+        <div className="pt-6 border-t border-slate-200">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-200">
+            <div>
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-brand" />
+                <span className="font-bold text-sm text-slate-900">Two-Factor Authentication (2FA)</span>
+                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${twoFactor ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>
+                  {twoFactor ? "Enabled" : "Disabled (Bypassed)"}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                When <strong>Disabled</strong>, you bypass 2FA upon login and log in directly using your password.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleToggle2FA}
+              disabled={toggling2FA}
+              className={`px-4 py-2 text-xs font-bold rounded-xl transition-all shadow-sm shrink-0 ${
+                twoFactor
+                  ? "bg-red-50 hover:bg-red-100 text-red-600 border border-red-200"
+                  : "bg-brand hover:bg-brand-hover text-white"
+              }`}
+            >
+              {toggling2FA ? "Saving..." : twoFactor ? "Disable 2FA" : "Enable 2FA"}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

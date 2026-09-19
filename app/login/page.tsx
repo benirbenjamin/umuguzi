@@ -9,7 +9,7 @@ import { useApp } from "@/components/providers/AppProviders";
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { settings, t } = useApp();
+  const { settings, t, refreshUser } = useApp();
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -50,7 +50,9 @@ function LoginForm() {
           }`
         );
       } else {
-        router.push("/dashboard");
+        await refreshUser();
+        const redirectParam = searchParams.get("redirect") || "/dashboard";
+        router.push(redirectParam);
       }
     } catch (err: any) {
       setError(err.message);
@@ -77,7 +79,7 @@ function LoginForm() {
         </Link>
         <h2 className="text-2xl font-black text-slate-900 tracking-tight">Sign In to Your Account</h2>
         <p className="mt-1 text-xs text-slate-500">
-          Protected with Two-Factor Authentication (2FA)
+          Enter your email or username to access your account
         </p>
       </div>
 
