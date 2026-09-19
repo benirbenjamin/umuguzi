@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ShieldCheck, ArrowRight, AlertCircle, RefreshCw, CheckCircle2 } from "lucide-react";
 import { useApp } from "@/components/providers/AppProviders";
 
-export default function VerifyEmailPage() {
+function VerifyEmailForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { settings } = useApp();
@@ -44,7 +44,7 @@ export default function VerifyEmailPage() {
       setSuccess(true);
       setTimeout(() => {
         router.push("/login?verified=true");
-      }, 1800);
+      }, 2000);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -53,21 +53,28 @@ export default function VerifyEmailPage() {
   };
 
   const handleResend = async () => {
-    setError("");
-    setResendMessage("");
+    if (!email) {
+      setError("Please provide your email address to resend the code.");
+      return;
+    }
+
     setResending(true);
+    setResendMessage("");
+    setError("");
 
     try {
-      const res = await fetch("/api/auth/verify-email", {
+      const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, resend: true }),
+        body: JSON.stringify({ resendOnly: true, email }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to resend code");
+      }
 
-      setResendMessage("A fresh 6-digit code has been dispatched to your email.");
+      setResendMessage("A fresh 6-digit verification code has been dispatched to your email.");
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -78,46 +85,78 @@ export default function VerifyEmailPage() {
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-50">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div className="w-12 h-12 rounded-2xl bg-blue-50 text-brand flex items-center justify-center mx-auto mb-3 shadow-sm border border-blue-100">
+        <Link href="/" className="inline-flex items-center gap-2 mb-4 group">
+          {settings.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={settings.logo_url} alt="Logo" className="w-10 h-10 rounded-2xl object-cover shadow-sm" />
+          ) : (
+            <div className="w-10 h-10 rounded-2xl bg-brand text-white flex items-center justify-center font-black text-xl">
+              U
+            </div>
+          )}
+          <span className="text-2xl font-black tracking-tight text-slate-900 group-hover:text-brand transition-colors">
+            {settings.app_name || "Umuguzipro"}
+          </span>
+        </Link>
+        <div className="w-12 h-12 bg-blue-100 text-brand rounded-2xl flex items-center justify-center mx-auto mb-4">
           <ShieldCheck className="w-6 h-6" />
         </div>
         <h2 className="text-2xl font-black text-slate-900 tracking-tight">Verify Your Email</h2>
-        <p className="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
-          We sent a 6-digit verification code to <strong className="text-slate-700">{email || "your email"}</strong>.
+        <p className="mt-1 text-xs text-slate-500">
+          Enter the 6-digit code sent to <strong>{email || "your email address"}</strong>
         </p>
       </div>
 
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md px-4">
         <div className="bg-white py-8 px-6 sm:px-10 shadow-xl shadow-slate-200/50 rounded-3xl border border-slate-200/80">
-          {error && (
-            <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-200 flex items-center gap-2.5 text-xs text-red-700">
-              <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {resendMessage && (
-            <div className="mb-4 p-3 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-700">
-              {resendMessage}
-            </div>
-          )}
-
           {success ? (
-            <div className="py-6 text-center space-y-3 animate-in zoom-in-95">
-              <CheckCircle2 className="w-14 h-14 text-emerald-500 mx-auto" />
-              <h3 className="text-base font-bold text-slate-900">Email Successfully Verified!</h3>
-              <p className="text-xs text-slate-500">Redirecting you to login...</p>
+            <div className="text-center py-6 space-y-3">
+              <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-6 h-6" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">Email Verified!</h3>
+              <p className="text-xs text-slate-500">
+                Your account is active. Redirecting you to sign in...
+              </p>
             </div>
           ) : (
-            <form onSubmit={handleVerify} className="space-y-5">
+            <form onSubmit={handleVerify} className="space-y-4">
+              {error && (
+                <div className="p-3 rounded-xl bg-red-50 border border-red-200 flex items-center gap-2.5 text-xs text-red-700">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {resendMessage && (
+                <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-2.5 text-xs text-emerald-800">
+                  <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
+                  <span>{resendMessage}</span>
+                </div>
+              )}
+
               <div>
-                <label className="block text-center text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Enter 6-Digit Code
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@example.com"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 text-center">
+                  6-Digit Verification Code
                 </label>
                 <input
                   type="text"
-                  maxLength={6}
                   required
+                  maxLength={6}
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, ""))}
                   placeholder="------"
@@ -153,5 +192,19 @@ export default function VerifyEmailPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+          <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <VerifyEmailForm />
+    </Suspense>
   );
 }

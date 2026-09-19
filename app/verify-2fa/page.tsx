@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { KeyRound, ArrowRight, AlertCircle, ShieldCheck } from "lucide-react";
+import { KeyRound, AlertCircle, ShieldCheck } from "lucide-react";
 import { useApp } from "@/components/providers/AppProviders";
 
-export default function Verify2FAPage() {
+function Verify2FAForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { refreshUser } = useApp();
@@ -47,12 +47,12 @@ export default function Verify2FAPage() {
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-50">
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
-        <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-3 shadow-sm border border-amber-100">
+        <div className="w-12 h-12 bg-blue-100 text-brand rounded-2xl flex items-center justify-center mx-auto mb-4">
           <KeyRound className="w-6 h-6" />
         </div>
         <h2 className="text-2xl font-black text-slate-900 tracking-tight">Two-Factor Authentication</h2>
-        <p className="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
-          Please enter the 6-digit security code dispatched to <strong className="text-slate-700">{emailHint}</strong>.
+        <p className="mt-1 text-xs text-slate-500">
+          Enter the 6-digit security code sent to <strong>{emailHint}</strong>
         </p>
       </div>
 
@@ -67,16 +67,15 @@ export default function Verify2FAPage() {
 
           <form onSubmit={handleVerify} className="space-y-5">
             <div>
-              <label className="block text-center text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                Enter 6-Digit 2FA Code
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 text-center">
+                6-Digit Security Code
               </label>
               <input
                 type="text"
-                maxLength={6}
                 required
-                autoFocus
+                maxLength={6}
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, ""))}
+                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                 placeholder="------"
                 className="w-full text-center tracking-[12px] text-2xl font-mono font-bold py-3 rounded-2xl border border-slate-300 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
               />
@@ -103,5 +102,19 @@ export default function Verify2FAPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Verify2FAPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+          <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <Verify2FAForm />
+    </Suspense>
   );
 }

@@ -7,6 +7,8 @@ import Link from "next/link";
 import { Store } from "lucide-react";
 import { ProductItem } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function MarketplacePage({
   searchParams,
 }: {
@@ -26,20 +28,29 @@ export default async function MarketplacePage({
     ];
   }
 
-  const [products, categories] = await Promise.all([
-    prisma.product.findMany({
-      where: whereClause,
-      include: {
-        seller: { select: { id: true, displayName: true, username: true, avatar: true } },
-        category: { select: { id: true, name: true, slug: true } },
-      },
-      orderBy: { salesCount: "desc" },
-    }),
-    prisma.category.findMany({
-      where: { type: "PRODUCT" },
-      orderBy: { name: "asc" },
-    }),
-  ]);
+  let products: any[] = [];
+  let categories: any[] = [];
+
+  try {
+    const results = await Promise.all([
+      prisma.product.findMany({
+        where: whereClause,
+        include: {
+          seller: { select: { id: true, displayName: true, username: true, avatar: true } },
+          category: { select: { id: true, name: true, slug: true } },
+        },
+        orderBy: { salesCount: "desc" },
+      }),
+      prisma.category.findMany({
+        where: { type: "PRODUCT" },
+        orderBy: { name: "asc" },
+      }),
+    ]);
+    products = results[0];
+    categories = results[1];
+  } catch (err) {
+    console.warn("Could not load products from DB:", err);
+  }
 
   const formattedProducts = products.map((p) => ({
     ...p,

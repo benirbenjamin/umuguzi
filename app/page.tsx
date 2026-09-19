@@ -18,6 +18,8 @@ import {
   TrendingUp,
 } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 // Server-side data fetching with fallback sample data for when DB is fresh
 async function getHomepageData() {
   try {

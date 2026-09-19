@@ -9,6 +9,8 @@ import Link from "next/link";
 import { Search as SearchIcon, Video as VideoIcon, Briefcase, Store, Users } from "lucide-react";
 import { VideoItem, ServiceItem, ProductItem } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function SearchPage({
   searchParams,
 }: {

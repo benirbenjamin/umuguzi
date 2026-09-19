@@ -6,14 +6,21 @@ import prisma from "@/lib/prisma";
 import { Users, CheckCircle2, ArrowRight } from "lucide-react";
 import { formatCompactNumber } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 export default async function ChannelsDirectoryPage() {
-  const channels = await prisma.channel.findMany({
-    include: {
-      _count: { select: { videos: true } },
-    },
-    orderBy: { subscriberCount: "desc" },
-    take: 30,
-  });
+  let channels: any[] = [];
+  try {
+    channels = await prisma.channel.findMany({
+      include: {
+        _count: { select: { videos: true } },
+      },
+      orderBy: { subscriberCount: "desc" },
+      take: 30,
+    });
+  } catch (err) {
+    console.warn("Could not load channels from DB:", err);
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">

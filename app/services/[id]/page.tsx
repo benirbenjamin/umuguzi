@@ -5,6 +5,8 @@ import Footer from "@/components/layout/Footer";
 import ServiceClient from "./ServiceClient";
 import prisma from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export default async function ServiceDetailPage({ params }: { params: { id: string } }) {
   try {
     const service = await prisma.service.findUnique({

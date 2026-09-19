@@ -7,6 +7,8 @@ import prisma from "@/lib/prisma";
 import { Compass, Flame, Clock } from "lucide-react";
 import { VideoItem } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function ExplorePage({
   searchParams,
 }: {
@@ -30,23 +32,32 @@ export default async function ExplorePage({
     whereClause.category = { slug: selectedCategorySlug };
   }
 
-  const [videos, categories] = await Promise.all([
-    prisma.video.findMany({
-      where: whereClause,
-      include: {
-        channel: {
-          select: { id: true, name: true, handle: true, avatar: true, subscriberCount: true, isVerified: true },
+  let videos: any[] = [];
+  let categories: any[] = [];
+
+  try {
+    const results = await Promise.all([
+      prisma.video.findMany({
+        where: whereClause,
+        include: {
+          channel: {
+            select: { id: true, name: true, handle: true, avatar: true, subscriberCount: true, isVerified: true },
+          },
+          category: { select: { id: true, name: true, slug: true } },
         },
-        category: { select: { id: true, name: true, slug: true } },
-      },
-      orderBy,
-      take: 24,
-    }),
-    prisma.category.findMany({
-      where: { type: "VIDEO" },
-      orderBy: { name: "asc" },
-    }),
-  ]);
+        orderBy,
+        take: 24,
+      }),
+      prisma.category.findMany({
+        where: { type: "VIDEO" },
+        orderBy: { name: "asc" },
+      }),
+    ]);
+    videos = results[0];
+    categories = results[1];
+  } catch (err) {
+    console.warn("Could not load explore data from DB:", err);
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">

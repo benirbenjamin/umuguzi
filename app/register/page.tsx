@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { User, Mail, Lock, AtSign, ArrowRight, AlertCircle, Sparkles } from "lucide-react";
 import { useApp } from "@/components/providers/AppProviders";
 
-export default function RegisterPage() {
+function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { settings, t } = useApp();
@@ -38,13 +38,13 @@ export default function RegisterPage() {
           username,
           email,
           password,
-          ref: refCode,
+          refCode: refCode || undefined,
         }),
       });
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Failed to register");
+        throw new Error(data.error || "Registration failed");
       }
 
       router.push(`/verify-email?email=${encodeURIComponent(email)}`);
@@ -71,9 +71,9 @@ export default function RegisterPage() {
             {settings.app_name || "Umuguzipro"}
           </span>
         </Link>
-        <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">Create your account</h2>
+        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Create Your Account</h2>
         <p className="mt-1 text-xs text-slate-500">
-          Join Rwanda&apos;s leading video, creator, and services ecosystem.
+          Join Rwanda&apos;s leading platform for video, freelance services, and digital products
         </p>
       </div>
 
@@ -89,7 +89,7 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                Full / Display Name
+                Full Name / Brand Name
               </label>
               <div className="relative">
                 <input
@@ -97,7 +97,7 @@ export default function RegisterPage() {
                   required
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="e.g. Jean Damascene"
+                  placeholder="Kigali Cinema Studio"
                   className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
                 />
                 <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
@@ -113,8 +113,8 @@ export default function RegisterPage() {
                   type="text"
                   required
                   value={username}
-                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
-                  placeholder="e.g. jeandamas"
+                  onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s+/g, ""))}
+                  placeholder="kigalicinema"
                   className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
                 />
                 <AtSign className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
@@ -131,7 +131,7 @@ export default function RegisterPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  placeholder="contact@kigalicinema.rw"
                   className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent transition-all"
                 />
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
@@ -146,6 +146,7 @@ export default function RegisterPage() {
                 <input
                   type="password"
                   required
+                  minLength={6}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Minimum 6 characters"
@@ -156,7 +157,7 @@ export default function RegisterPage() {
             </div>
 
             {refCode && (
-              <div className="p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-800 flex items-center gap-2">
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-brand flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-brand shrink-0" />
                 <span>Referred by partner code: <strong>{refCode}</strong></span>
               </div>
@@ -181,5 +182,19 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+          <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <RegisterForm />
+    </Suspense>
   );
 }

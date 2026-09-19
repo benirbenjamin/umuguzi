@@ -8,6 +8,8 @@ import { CheckCircle2, Eye, Users, Calendar, Video as VideoIcon } from "lucide-r
 import { formatCompactNumber, timeAgo } from "@/lib/utils";
 import { VideoItem } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function ChannelPage({ params }: { params: { handle: string } }) {
   try {
     const channel = await prisma.channel.findUnique({

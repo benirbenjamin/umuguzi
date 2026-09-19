@@ -7,6 +7,8 @@ import prisma from "@/lib/prisma";
 import { Briefcase, Plus, Search, Filter } from "lucide-react";
 import { ServiceItem } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function ServicesMarketplacePage({
   searchParams,
 }: {
@@ -35,22 +37,31 @@ export default async function ServicesMarketplacePage({
     whereClause.location = { contains: location, mode: "insensitive" };
   }
 
-  const [services, categories] = await Promise.all([
-    prisma.service.findMany({
-      where: whereClause,
-      include: {
-        provider: {
-          select: { id: true, displayName: true, username: true, avatar: true, phone: true },
+  let services: any[] = [];
+  let categories: any[] = [];
+
+  try {
+    const results = await Promise.all([
+      prisma.service.findMany({
+        where: whereClause,
+        include: {
+          provider: {
+            select: { id: true, displayName: true, username: true, avatar: true, phone: true },
+          },
+          category: { select: { id: true, name: true, slug: true } },
         },
-        category: { select: { id: true, name: true, slug: true } },
-      },
-      orderBy: { rating: "desc" },
-    }),
-    prisma.category.findMany({
-      where: { type: "SERVICE" },
-      orderBy: { name: "asc" },
-    }),
-  ]);
+        orderBy: { rating: "desc" },
+      }),
+      prisma.category.findMany({
+        where: { type: "SERVICE" },
+        orderBy: { name: "asc" },
+      }),
+    ]);
+    services = results[0];
+    categories = results[1];
+  } catch (err) {
+    console.warn("Could not load services from DB:", err);
+  }
 
   const formattedServices = services.map((s) => ({
     ...s,

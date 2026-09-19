@@ -7,6 +7,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { HelpCircle, Plus, MessageSquare } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 export default async function SupportPage() {
   const user = await getCurrentUser();
 

@@ -8,6 +8,8 @@ import Link from "next/link";
 import { Bell, CheckCircle2, ArrowRight } from "lucide-react";
 import { timeAgo } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 export default async function NotificationsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login?redirect=/notifications");

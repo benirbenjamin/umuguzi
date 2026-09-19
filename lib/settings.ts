@@ -57,8 +57,8 @@ export async function getSiteSettings(): Promise<SiteSettings> {
     cachedSettings = settingsObj as SiteSettings;
     cacheTime = now;
     return cachedSettings;
-  } catch (err) {
-    console.warn("Could not load settings from DB, using defaults:", err);
+  } catch {
+    // Database tables might not be initialized yet during initial deployment
     return DEFAULT_SETTINGS;
   }
 }

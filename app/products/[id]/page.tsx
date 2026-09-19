@@ -6,6 +6,8 @@ import ProductDetailClient from "./ProductDetailClient";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
+export const dynamic = "force-dynamic";
+
 export default async function ProductDetailPage({ params }: { params: { id: string } }) {
   try {
     const user = await getCurrentUser();

@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Mail, Lock, ArrowRight, AlertCircle, CheckCircle2, Shield } from "lucide-react";
+import { Mail, Lock, AlertCircle, CheckCircle2, Shield } from "lucide-react";
 import { useApp } from "@/components/providers/AppProviders";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { settings, t } = useApp();
@@ -43,7 +43,6 @@ export default function LoginPage() {
       }
 
       if (data.requires2FA) {
-        // Redirect to 2FA verification step
         const redirectParam = searchParams.get("redirect") || "";
         router.push(
           `/verify-2fa?email=${encodeURIComponent(data.email || identifier)}${
@@ -167,5 +166,19 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+          <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

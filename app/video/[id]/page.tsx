@@ -6,6 +6,8 @@ import VideoPlayerClient from "./VideoPlayerClient";
 import prisma from "@/lib/prisma";
 import { VideoItem } from "@/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function VideoPage({ params }: { params: { id: string } }) {
   try {
     const video = await prisma.video.findUnique({

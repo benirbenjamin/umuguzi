@@ -6,16 +6,23 @@ import prisma from "@/lib/prisma";
 import { HelpCircle, Plus, MapPin, Calendar, ArrowRight, DollarSign } from "lucide-react";
 import { formatCurrency, timeAgo } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 export default async function ServiceRequestsPage() {
-  const requests = await prisma.serviceRequest.findMany({
-    where: { status: "OPEN" },
-    include: {
-      customer: { select: { displayName: true, username: true, avatar: true } },
-      category: { select: { name: true, slug: true } },
-      _count: { select: { proposals: true } },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  let requests: any[] = [];
+  try {
+    requests = await prisma.serviceRequest.findMany({
+      where: { status: "OPEN" },
+      include: {
+        customer: { select: { displayName: true, username: true, avatar: true } },
+        category: { select: { name: true, slug: true } },
+        _count: { select: { proposals: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  } catch (err) {
+    console.warn("Could not load service requests from DB:", err);
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
