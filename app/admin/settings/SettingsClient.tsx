@@ -25,7 +25,7 @@ export default function SettingsClient({ initialSettings }: { initialSettings: S
   const [success, setSuccess] = useState(false);
 
   const handleChange = (field: keyof SiteSettings, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev: SiteSettings) => ({ ...prev, [field]: value }));
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

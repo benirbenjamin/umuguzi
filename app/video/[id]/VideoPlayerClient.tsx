@@ -29,7 +29,7 @@ export default function VideoPlayerClient({
 }) {
   const { user } = useApp();
   const [video, setVideo] = useState(initialVideo);
-  const [likes, setLikes] = useState(initialVideo.likes || 0);
+  const [likes, setLikes] = useState<number>(Number(initialVideo.likes) || 0);
   const [userLiked, setUserLiked] = useState<boolean | null>(null);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -67,10 +67,10 @@ export default function VideoPlayerClient({
       });
       const data = await res.json();
       if (data.action === "liked") {
-        setLikes((prev) => prev + 1);
+        setLikes((prev: number) => prev + 1);
         setUserLiked(true);
       } else if (data.action === "removed") {
-        setLikes((prev) => Math.max(0, prev - 1));
+        setLikes((prev: number) => Math.max(0, prev - 1));
         setUserLiked(null);
       } else {
         setUserLiked(false);

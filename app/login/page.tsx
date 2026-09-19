@@ -20,6 +20,8 @@ export default function LoginPage() {
   useEffect(() => {
     if (searchParams.get("verified") === "true") {
       setSuccessMsg("Email verified successfully! You can now log in.");
+    } else if (searchParams.get("reset") === "success") {
+      setSuccessMsg("Password reset successfully! You can now log in with your new password.");
     }
   }, [searchParams]);
 
@@ -119,6 +121,12 @@ export default function LoginPage() {
                 <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                   Password
                 </label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs font-semibold text-brand hover:underline"
+                >
+                  Forgot password?
+                </Link>
               </div>
               <div className="relative">
                 <input

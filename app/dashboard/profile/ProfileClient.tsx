@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { User, Phone, MapPin, Globe, CheckCircle2, AlertCircle, Image as ImageIcon } from "lucide-react";
+import { User, Phone, MapPin, Globe, CheckCircle2, AlertCircle, Image as ImageIcon, Lock, KeyRound } from "lucide-react";
 import { useApp } from "@/components/providers/AppProviders";
 
 export default function ProfileClient({ profile }: { profile: any }) {
@@ -19,6 +19,14 @@ export default function ProfileClient({ profile }: { profile: any }) {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -69,6 +77,44 @@ export default function ProfileClient({ profile }: { profile: any }) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError("");
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New passwords do not match.");
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError("New password must be at least 6 characters long.");
+      return;
+    }
+
+    setPasswordLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to change password");
+
+      setPasswordSuccess(true);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setTimeout(() => setPasswordSuccess(false), 4000);
+    } catch (err: any) {
+      setPasswordError(err.message);
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -200,6 +246,98 @@ export default function ProfileClient({ profile }: { profile: any }) {
             className="w-full py-3 bg-brand hover:bg-brand-hover text-white font-bold text-sm rounded-xl shadow-md transition-all disabled:opacity-50"
           >
             {loading ? "Saving Profile..." : "Save Profile Changes"}
+          </button>
+        </form>
+      </div>
+
+      {/* Security & Password Card */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <Lock className="w-5 h-5 text-brand" />
+            <span>Security & Password</span>
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Ensure your account is protected with a secure password.
+          </p>
+        </div>
+
+        {passwordError && (
+          <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-xs text-red-700">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{passwordError}</span>
+          </div>
+        )}
+
+        {passwordSuccess && (
+          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2 text-xs text-emerald-700">
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <span>Password updated successfully!</span>
+          </div>
+        )}
+
+        <form onSubmit={handleChangePassword} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+              Current Password
+            </label>
+            <div className="relative">
+              <input
+                type="password"
+                required
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Enter current password"
+                className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+              />
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                New Password
+              </label>
+              <div className="relative">
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="At least 6 characters"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+                />
+                <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                Confirm New Password
+              </label>
+              <div className="relative">
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Repeat new password"
+                  className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-brand"
+                />
+                <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={passwordLoading || !currentPassword || !newPassword || !confirmPassword}
+            className="py-3 px-6 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl shadow-sm transition-all disabled:opacity-50"
+          >
+            {passwordLoading ? "Updating Password..." : "Update Password"}
           </button>
         </form>
       </div>

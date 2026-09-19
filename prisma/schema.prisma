@@ -82,6 +82,7 @@ model User {
   sessions           Session[]
   emailCodes         EmailVerificationCode[]
   twoFactorCodes     TwoFactorCode[]
+  passwordResetCodes PasswordResetCode[]
   channelSubs        ChannelSubscription[]
 
   @@index([email])
@@ -123,6 +124,20 @@ model TwoFactorCode {
   id        String   @id @default(uuid())
   userId    String
   code      String   // 6-digit numeric 2FA code
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([code])
+}
+
+model PasswordResetCode {
+  id        String   @id @default(uuid())
+  userId    String
+  code      String   // 6-digit numeric reset code
   attempts  Int      @default(0)
   expiresAt DateTime
   createdAt DateTime @default(now())
