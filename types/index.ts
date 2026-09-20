@@ -55,6 +55,8 @@ export interface SiteSettings {
   maintenance_mode: string;
   two_factor_enabled?: string;
   email_verification_enabled?: string;
+  resend_api_key?: string;
+  email_from?: string;
 }
 
 export interface VideoItem {

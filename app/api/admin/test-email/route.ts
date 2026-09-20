@@ -45,7 +45,16 @@ export async function POST(req: Request) {
       text: `Email System Diagnostic Test for ${settings.app_name}. Timestamp: ${new Date().toISOString()}`,
     });
 
-    const resendKeyPresent = Boolean(process.env.RESEND_API_KEY && process.env.RESEND_API_KEY.startsWith("re_"));
+    const { resolveResendApiKey, DEFAULT_FROM } = await import("@/lib/email");
+    const dbKey = settings.resend_api_key;
+    const effectiveResendKey = resolveResendApiKey(dbKey);
+    const hasResendKey = Boolean(effectiveResendKey);
+    const keySource = dbKey && dbKey.trim().length > 0
+      ? "Database (Admin Settings)"
+      : process.env.RESEND_API_KEY
+      ? "Vercel / Environment Variable"
+      : "None";
+
     const smtpPresent = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER);
 
     return NextResponse.json({
@@ -55,10 +64,11 @@ export async function POST(req: Request) {
       error: result.error,
       diagnostic: {
         recipient,
-        hasResendKey: resendKeyPresent,
-        resendKeyPrefix: resendKeyPresent ? `${process.env.RESEND_API_KEY?.slice(0, 7)}...` : "None",
+        hasResendKey,
+        keySource,
+        resendKeyPrefix: hasResendKey ? `${effectiveResendKey!.slice(0, 7)}...` : "None",
         hasSmtp: smtpPresent,
-        configuredSender: process.env.EMAIL_FROM || "Umuguzipro <onboarding@resend.dev>",
+        configuredSender: settings.email_from || process.env.EMAIL_FROM || DEFAULT_FROM,
       },
     });
   } catch (error: any) {

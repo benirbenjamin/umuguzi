@@ -33,6 +33,8 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   maintenance_mode: "false",
   two_factor_enabled: "false",
   email_verification_enabled: "false",
+  resend_api_key: "",
+  email_from: "",
 };
 
 let cachedSettings: SiteSettings | null = null;
@@ -71,6 +73,7 @@ export async function getPublicSiteSettings(): Promise<Partial<SiteSettings>> {
   const publicSettings = { ...settings };
   delete (publicSettings as any).flutterwave_secret_key;
   delete (publicSettings as any).flutterwave_encryption_key;
+  delete (publicSettings as any).resend_api_key;
   return publicSettings;
 }
 
@@ -85,6 +88,8 @@ export async function updateSiteSettings(entries: Record<string, string>): Promi
       category = "SOCIAL";
     } else if (key.startsWith("flutterwave_") || key.startsWith("manual_payment_") || key === "currency" || key === "commission_rate") {
       category = "PAYMENTS";
+    } else if (key.startsWith("resend_") || key.startsWith("email_") || key.startsWith("smtp_")) {
+      category = "EMAIL";
     }
 
     await prisma.siteSetting.upsert({

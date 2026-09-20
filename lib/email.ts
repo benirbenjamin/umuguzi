@@ -1,10 +1,19 @@
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
+import { getSiteSettings } from "./settings";
 
-const resendApiKey = process.env.RESEND_API_KEY;
-const resend = resendApiKey && resendApiKey.startsWith("re_") ? new Resend(resendApiKey) : null;
-const DEFAULT_FROM = "Umuguzipro <onboarding@resend.dev>";
-const EMAIL_FROM = process.env.EMAIL_FROM || DEFAULT_FROM;
+export const DEFAULT_FROM = "Umuguzipro <onboarding@resend.dev>";
+
+/**
+ * Resolves and sanitizes the Resend API key from either database settings or process.env.
+ * Automatically trims whitespace and removes accidental surrounding quotes.
+ */
+export function resolveResendApiKey(dbKey?: string | null): string | null {
+  const candidate = (dbKey && dbKey.trim().length > 0) ? dbKey : process.env.RESEND_API_KEY;
+  if (!candidate) return null;
+  const clean = candidate.trim().replace(/^["']|["']$/g, "").trim();
+  return clean.startsWith("re_") ? clean : null;
+}
 
 export interface SendEmailOptions {
   to: string;
@@ -29,12 +38,22 @@ export async function sendEmailDetailed({ to, subject, html, text, from }: SendE
   console.log(`Content Summary:\n${text || html.replace(/<[^>]+>/g, " ").slice(0, 160)}...`);
   console.log(`======================================================\n`);
 
-  const primaryFrom = from || EMAIL_FROM;
+  let dbSettings: any = null;
+  try {
+    dbSettings = await getSiteSettings();
+  } catch {
+    // DB not ready or during build
+  }
+
+  const effectiveApiKey = resolveResendApiKey(dbSettings?.resend_api_key);
+  const effectiveEmailFrom = from || dbSettings?.email_from || process.env.EMAIL_FROM || DEFAULT_FROM;
+  const primaryFrom = effectiveEmailFrom;
   let lastError = "";
 
   // 1. Try Resend if configured
-  if (resend) {
+  if (effectiveApiKey) {
     try {
+      const resend = new Resend(effectiveApiKey);
       // Primary attempt with configured sender
       const response = await resend.emails.send({
         from: primaryFrom,
@@ -80,7 +99,7 @@ export async function sendEmailDetailed({ to, subject, html, text, from }: SendE
       console.error("[Resend Exception]:", lastError);
     }
   } else {
-    console.warn("[Email] RESEND_API_KEY is not set or invalid.");
+    console.warn("[Email] RESEND_API_KEY is not set or invalid (must start with 're_').");
   }
 
   // 2. Try Nodemailer SMTP if configured
@@ -113,8 +132,8 @@ export async function sendEmailDetailed({ to, subject, html, text, from }: SendE
   }
 
   // Fallback diagnostic
-  if (!resend && !process.env.SMTP_HOST) {
-    lastError = "Neither RESEND_API_KEY nor SMTP credentials are configured in environment variables.";
+  if (!effectiveApiKey && !process.env.SMTP_HOST) {
+    lastError = "Neither RESEND_API_KEY nor SMTP credentials are configured. Set RESEND_API_KEY in Vercel (and redeploy) or enter it in Admin Settings.";
   }
 
   console.error(`[Email Delivery Failure] Could not send to ${to}. Reason: ${lastError}`);

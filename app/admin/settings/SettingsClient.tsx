@@ -651,6 +651,52 @@ export default function SettingsClient({ initialSettings }: { initialSettings: S
               </div>
             </div>
 
+            {/* Email Credentials & Dispatch Configuration */}
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
+              <div>
+                <h4 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-brand" /> Outbound Email &amp; Resend Configuration
+                </h4>
+                <p className="text-xs text-slate-500 mt-1">
+                  Emails can be configured here in database settings (instant without redeployment) or via Vercel Environment Variables.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Resend API Key
+                  </label>
+                  <input
+                    type="password"
+                    value={formData.resend_api_key || ""}
+                    onChange={(e) => handleChange("resend_api_key", e.target.value)}
+                    placeholder="re_xxxxxxxxxxxxxxxxxxxx"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-brand font-mono"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Leave blank to use Vercel <code>RESEND_API_KEY</code> env variable.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Sender Email Address (EMAIL_FROM)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.email_from || ""}
+                    onChange={(e) => handleChange("email_from", e.target.value)}
+                    placeholder="Umuguzipro <onboarding@resend.dev>"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs bg-white focus:outline-none focus:ring-2 focus:ring-brand"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Use <code>onboarding@resend.dev</code> for unverified domains.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* Outbound Email Diagnostics & Tester */}
             <div className="p-5 rounded-2xl bg-blue-50/60 border border-blue-100 space-y-4">
               <div>
@@ -705,7 +751,13 @@ export default function SettingsClient({ initialSettings }: { initialSettings: S
                   {testEmailResult.diagnostic && (
                     <div className="text-[11px] font-mono bg-white/80 p-3 rounded-lg border border-slate-200 space-y-1 mt-2 text-slate-700">
                       <div>Sender Address: <strong>{testEmailResult.diagnostic.configuredSender}</strong></div>
-                      <div>Resend Key: <strong>{testEmailResult.diagnostic.hasResendKey ? `Active (${testEmailResult.diagnostic.resendKeyPrefix})` : "Missing (RESEND_API_KEY)"}</strong></div>
+                      <div>
+                        Resend Key: <strong>
+                          {testEmailResult.diagnostic.hasResendKey
+                            ? `Active (${testEmailResult.diagnostic.resendKeyPrefix}) [Source: ${testEmailResult.diagnostic.keySource || "Configured"}]`
+                            : "Missing (Not found in Database or Vercel RESEND_API_KEY)"}
+                        </strong>
+                      </div>
                       <div>SMTP Fallback: <strong>{testEmailResult.diagnostic.hasSmtp ? "Configured" : "Not configured"}</strong></div>
                       {!testEmailResult.success && (
                         <div className="text-amber-700 font-sans mt-2 pt-2 border-t border-slate-200 leading-relaxed">
