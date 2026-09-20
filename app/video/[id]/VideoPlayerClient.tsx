@@ -165,7 +165,7 @@ export default function VideoPlayerClient({
           )}
 
           {/* Premium Lock Overlay if unpaid premium */}
-          {video.accessType === "PREMIUM" && video.price > 0 && !user && (
+          {video.accessType === "PREMIUM" && video.price && video.price > 0 && !user && (
             <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center text-white p-6 text-center space-y-3">
               <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
                 <Lock className="w-6 h-6" />

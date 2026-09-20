@@ -35,7 +35,7 @@ export default function VideoCard({ video }: { video: VideoItem }) {
         {video.accessType === "PREMIUM" && (
           <span className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 bg-amber-500 text-white text-[11px] font-bold rounded-md shadow">
             <Lock className="w-3 h-3" />
-            {video.price > 0 ? formatCurrency(video.price) : "Premium"}
+            {video.price && video.price > 0 ? formatCurrency(video.price) : "Premium"}
           </span>
         )}
       </Link>
