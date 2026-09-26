@@ -4,6 +4,7 @@ import "./globals.css";
 import { getPublicSiteSettings } from "@/lib/settings";
 import { getCurrentUser } from "@/lib/auth";
 import { AppProviders } from "@/components/providers/AppProviders";
+import MobileBottomNav from "@/components/layout/MobileBottomNav";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -47,9 +48,10 @@ export default async function RootLayout({
       <head>
         <style dangerouslySetInnerHTML={{ __html: brandCssVars }} />
       </head>
-      <body className={`${inter.className} min-h-screen flex flex-col bg-slate-50 text-slate-900 antialiased`}>
+      <body className={`${inter.className} min-h-screen flex flex-col bg-slate-50 text-slate-900 antialiased pb-14 md:pb-0`}>
         <AppProviders initialSettings={settings} initialUser={user}>
           {children}
+          <MobileBottomNav />
         </AppProviders>
       </body>
     </html>

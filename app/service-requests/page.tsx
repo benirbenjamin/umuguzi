@@ -3,7 +3,7 @@ import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import prisma from "@/lib/prisma";
-import { HelpCircle, Plus, MapPin, Calendar, ArrowRight, DollarSign } from "lucide-react";
+import { HelpCircle, Plus, MapPin, Calendar, ArrowRight, DollarSign, Briefcase } from "lucide-react";
 import { formatCurrency, timeAgo } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +45,24 @@ export default async function ServiceRequestsPage() {
           >
             <Plus className="w-4 h-4" />
             Post Your Request
+          </Link>
+        </div>
+
+        {/* Main Section Navigation Tabs */}
+        <div className="flex items-center gap-2 p-1.5 bg-white rounded-2xl border border-slate-200 shadow-2xs">
+          <Link
+            href="/services"
+            className="flex-1 py-2.5 px-4 rounded-xl text-center text-xs sm:text-sm font-bold text-slate-700 hover:bg-slate-100 flex items-center justify-center gap-2 transition-colors"
+          >
+            <Briefcase className="w-4 h-4" />
+            <span>Offered Services</span>
+          </Link>
+          <Link
+            href="/service-requests"
+            className="flex-1 py-2.5 px-4 rounded-xl text-center text-xs sm:text-sm font-extrabold bg-amber-500 text-slate-950 shadow-sm flex items-center justify-center gap-2"
+          >
+            <HelpCircle className="w-4 h-4" />
+            <span>Service Needs / Client Requests ({requests.length})</span>
           </Link>
         </div>
 
