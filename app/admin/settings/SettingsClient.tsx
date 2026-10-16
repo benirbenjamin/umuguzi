@@ -14,6 +14,10 @@ import {
   Shield,
   Send,
   Loader2,
+  Share2,
+  Layers,
+  Megaphone,
+  DollarSign,
 } from "lucide-react";
 import { useApp } from "@/components/providers/AppProviders";
 import { SiteSettings } from "@/types";
@@ -21,7 +25,7 @@ import { SiteSettings } from "@/types";
 export default function SettingsClient({ initialSettings }: { initialSettings: SiteSettings }) {
   const { updateLocalSettings } = useApp();
   const [formData, setFormData] = useState<SiteSettings>(initialSettings);
-  const [activeTab, setActiveTab] = useState<"branding" | "contacts" | "payments" | "storage" | "security">("branding");
+  const [activeTab, setActiveTab] = useState<"branding" | "contacts" | "payments" | "storage" | "security" | "referrals" | "ads">("branding");
   const [loading, setLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [error, setError] = useState("");
@@ -173,6 +177,30 @@ export default function SettingsClient({ initialSettings }: { initialSettings: S
         >
           <Shield className="w-4 h-4" />
           Security &amp; Auth
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("referrals")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            activeTab === "referrals"
+              ? "bg-slate-900 text-white shadow-sm"
+              : "text-slate-600 hover:bg-slate-200"
+          }`}
+        >
+          <Share2 className="w-4 h-4" />
+          Referrals &amp; MLM
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("ads")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+            activeTab === "ads"
+              ? "bg-slate-900 text-white shadow-sm"
+              : "text-slate-600 hover:bg-slate-200"
+          }`}
+        >
+          <Megaphone className="w-4 h-4 text-amber-500" />
+          Advertising &amp; Monetization
         </button>
       </div>
 
@@ -489,6 +517,17 @@ export default function SettingsClient({ initialSettings }: { initialSettings: S
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-white"
                   />
                 </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Encryption Key</label>
+                  <input
+                    type="password"
+                    value={formData.flutterwave_encryption_key || ""}
+                    onChange={(e) => handleChange("flutterwave_encryption_key", e.target.value)}
+                    placeholder="FLWSECK_TEST_ENCR-..."
+                    className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-white"
+                  />
+                </div>
               </div>
             </div>
 
@@ -768,6 +807,356 @@ export default function SettingsClient({ initialSettings }: { initialSettings: S
                   )}
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === "referrals" && (
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 space-y-6 shadow-sm">
+            <div>
+              <h3 className="font-black text-lg text-slate-900 flex items-center gap-2">
+                <Share2 className="w-5 h-5 text-brand" /> Referral &amp; Multi-Level Marketing (MLM) Engine
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Toggle the platform referral reward system, multi-level commission tiers, and payout percentages.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+              {/* Master Referral Switch */}
+              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-extrabold text-sm text-slate-900">Referral System (Master Switch)</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Enable or disable referral code tracking, invite links, and commission earnings.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 pt-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="referral_system_enabled"
+                      checked={formData.referral_system_enabled !== "false"}
+                      onChange={() => handleChange("referral_system_enabled", "true")}
+                      className="text-brand focus:ring-brand"
+                    />
+                    <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                      ON (Enabled)
+                    </span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="referral_system_enabled"
+                      checked={formData.referral_system_enabled === "false"}
+                      onChange={() => handleChange("referral_system_enabled", "false")}
+                      className="text-brand focus:ring-brand"
+                    />
+                    <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-300">
+                      OFF (Disabled)
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Multi-Level Switch */}
+              <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-extrabold text-sm text-slate-900">Multi-Level System (Tiered MLM)</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      Enable 2nd and 3rd tier commissions when invitees invite other creators and buyers.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 pt-2">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="multilevel_referral_enabled"
+                      checked={formData.multilevel_referral_enabled !== "false"}
+                      onChange={() => handleChange("multilevel_referral_enabled", "true")}
+                      className="text-brand focus:ring-brand"
+                    />
+                    <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                      ON (Multi-Tier)
+                    </span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="multilevel_referral_enabled"
+                      checked={formData.multilevel_referral_enabled === "false"}
+                      onChange={() => handleChange("multilevel_referral_enabled", "false")}
+                      className="text-brand focus:ring-brand"
+                    />
+                    <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-300">
+                      OFF (Direct Only)
+                    </span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Commission Rates */}
+            <div className="border-t border-slate-100 pt-5 space-y-4">
+              <h4 className="font-extrabold text-sm text-slate-900 flex items-center gap-2">
+                <Layers className="w-4 h-4 text-brand" /> Commission Tier Rates (%)
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Level 1 (Direct Inviter %)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.referral_commission_rate || "5"}
+                    onChange={(e) => handleChange("referral_commission_rate", e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-brand"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">Paid to the direct sponsor of the user.</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Level 2 (Parent Sponsor %)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.multilevel_level2_rate || "3"}
+                    onChange={(e) => handleChange("multilevel_level2_rate", e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-brand"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">Active when Multi-Level is ON.</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Level 3 (Grandparent Sponsor %)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.multilevel_level3_rate || "1"}
+                    onChange={(e) => handleChange("multilevel_level3_rate", e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs focus:ring-2 focus:ring-brand"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">Active when Multi-Level is ON.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 7: Advertising & Monetization */}
+        {activeTab === "ads" && (
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
+            <div>
+              <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                <Megaphone className="w-5 h-5 text-amber-500" />
+                Google AdSense &amp; Creator Monetization Settings
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Configure in-stream video ads, feed advertisements, Google AdSense IDs, and creator milestone payouts.
+              </p>
+            </div>
+
+            {/* 1. Google AdSense Global Switch & IDs */}
+            <div className="p-5 rounded-2xl bg-amber-50/50 border border-amber-200/80 space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                  <Megaphone className="w-4 h-4 text-amber-600" /> Google AdSense Network
+                </span>
+                <select
+                  value={formData.ads_enabled || "true"}
+                  onChange={(e) => handleChange("ads_enabled", e.target.value)}
+                  className="text-xs font-bold px-3 py-1.5 rounded-lg border border-slate-300 bg-white"
+                >
+                  <option value="true">Active (Show Ads Across App)</option>
+                  <option value="false">Disabled (No Ads)</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Google AdSense Publisher Client ID
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.adsense_client_id || "ca-pub-4078466828008985"}
+                    onChange={(e) => handleChange("adsense_client_id", e.target.value)}
+                    placeholder="ca-pub-4078466828008985"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-white"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">Found in your AdSense code tag.</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Default Ad Slot ID
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.adsense_slot_id || "7034214536"}
+                    onChange={(e) => handleChange("adsense_slot_id", e.target.value)}
+                    placeholder="7034214536"
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-mono bg-white"
+                  />
+                  <p className="text-[11px] text-slate-500 mt-1">Slot ID from your AdSense unit.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Creator Monetization Milestones */}
+            <div className="p-5 rounded-2xl bg-purple-50/50 border border-purple-100 space-y-4">
+              <div>
+                <h4 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-purple-600" />
+                  Creator Monetization Requirements (Auto-Income Activation)
+                </h4>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Channels meeting or exceeding both criteria automatically start earning income when ads are seen on their videos.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Minimum Subscribers Required
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.monetization_min_subscribers || "30"}
+                    onChange={(e) => handleChange("monetization_min_subscribers", e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs bg-white font-mono"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">Default: 30 subscribers.</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Minimum Watch Hours Required
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.monetization_min_watch_hours || "300"}
+                    onChange={(e) => handleChange("monetization_min_watch_hours", e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs bg-white font-mono"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">Default: 300 watch hours (18,000 mins).</p>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Ad Income Payout Rates */}
+            <div className="p-5 rounded-2xl bg-emerald-50/50 border border-emerald-100 space-y-4">
+              <div>
+                <h4 className="font-bold text-sm text-slate-900 flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-emerald-600" />
+                  Creator Ad Reward Rates (Configurable Payouts)
+                </h4>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Amount credited directly to creator wallet. Internal formula is hidden from end-users.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Earnings per Successful Ad View (RWF)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.ad_reward_view_rwf || "3"}
+                    onChange={(e) => handleChange("ad_reward_view_rwf", e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs bg-white font-mono"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">Default: 3 RWF per completed/non-skipped view.</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Additional Earnings per Ad Click (RWF)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.ad_reward_click_rwf || "4"}
+                    onChange={(e) => handleChange("ad_reward_click_rwf", e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs bg-white font-mono"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">Default: 4 RWF when viewer clicks advertiser link.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. In-Stream Video Ad Timings */}
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4">
+              <div>
+                <h4 className="font-bold text-sm text-slate-900">
+                  Video Player Ad Break Schedule &amp; Skip Controller
+                </h4>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Control when ads trigger during video playback and unskippable countdown times.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    First Ad Delay (Sec)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.ad_initial_delay_seconds || "15"}
+                    onChange={(e) => handleChange("ad_initial_delay_seconds", e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs bg-white font-mono"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">Default: 15s into video.</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Repeat Interval (Sec)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.ad_interval_seconds || "300"}
+                    onChange={(e) => handleChange("ad_interval_seconds", e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs bg-white font-mono"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">Default: 300s (every 5 mins).</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Total Ad Duration (Sec)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.ad_duration_seconds || "12"}
+                    onChange={(e) => handleChange("ad_duration_seconds", e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs bg-white font-mono"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">Default: 12 seconds.</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Unskippable Time (Sec)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.ad_skip_delay_seconds || "8"}
+                    onChange={(e) => handleChange("ad_skip_delay_seconds", e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs bg-white font-mono"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">Default: 8s before Skip enables.</p>
+                </div>
+              </div>
             </div>
           </div>
         )}

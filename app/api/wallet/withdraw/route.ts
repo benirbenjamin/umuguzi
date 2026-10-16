@@ -94,9 +94,27 @@ export async function POST(req: Request) {
       },
     });
 
+    // CRITICAL OPERATION: Alert Super Admin (benirabok@gmail.com) via email and in-app alert
+    const { sendCriticalAdminAlert } = await import("@/lib/adminAlert");
+    await sendCriticalAdminAlert({
+      subject: `New Withdrawal Request (${withdrawAmount} RWF by ${user.displayName})`,
+      title: `💸 Payout Requested: ${withdrawAmount} RWF`,
+      message: `${user.displayName} (@${user.username}, ${user.email}) submitted a withdrawal request for ${withdrawAmount} RWF via ${paymentMethod}.`,
+      details: {
+        "User": `${user.displayName} (${user.email})`,
+        "Amount": `${withdrawAmount} RWF`,
+        "Payment Method": paymentMethod,
+        "Payout Account Number": accountDetails.accountNumber,
+        "Account Holder Name": accountDetails.accountName || "N/A",
+        "Requested At": new Date().toLocaleString(),
+      },
+      actionLink: "/admin/withdrawals",
+      actionText: "Process & Disburse Payout in Admin",
+    });
+
     return NextResponse.json({ success: true, withdrawal });
   } catch (error: any) {
     console.error("Withdrawal error:", error);
-    return NextResponse.json({ error: "Failed to process withdrawal request" }, { status: 500 });
+    return NextResponse.json({ error: error?.message || "Failed to process withdrawal request" }, { status: 500 });
   }
 }

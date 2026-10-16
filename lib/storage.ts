@@ -2,16 +2,39 @@ import { getSiteSettings } from "./settings";
 
 export interface UploadResult {
   url: string;
-  provider: "VERCEL_BLOB" | "AWS_S3" | "CLOUDFLARE_R2" | "LOCAL";
+  provider: "GOOGLE_DRIVE" | "VERCEL_BLOB" | "AWS_S3" | "CLOUDFLARE_R2" | "LOCAL";
   pathname?: string;
   size: number;
+  downloadUrl?: string;
+  fileId?: string;
 }
 
 export async function uploadFile(file: File | Blob, filename: string): Promise<UploadResult> {
   const settings = await getSiteSettings();
   const provider = settings.storage_provider || "VERCEL_BLOB";
 
-  // 1. Primary: Vercel Blob
+  // 1. Google Drive Multi-Drive Pool (when configured)
+  if (provider === "GOOGLE_DRIVE") {
+    try {
+      const { uploadToMultiGoogleDrive } = await import("./googleDrive");
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const mimeType = (file as any).type || "video/mp4";
+
+      const driveRes = await uploadToMultiGoogleDrive(buffer, filename, mimeType);
+      return {
+        url: driveRes.viewUrl,
+        downloadUrl: driveRes.downloadUrl,
+        fileId: driveRes.fileId,
+        provider: "GOOGLE_DRIVE",
+        size: driveRes.size,
+      };
+    } catch (error: any) {
+      console.warn("Google Drive pool upload failed, falling back to other providers:", error.message);
+    }
+  }
+
+  // 2. Primary: Vercel Blob
   if (provider === "VERCEL_BLOB" && process.env.BLOB_READ_WRITE_TOKEN) {
     try {
       const { put } = await import("@vercel/blob");
@@ -30,7 +53,7 @@ export async function uploadFile(file: File | Blob, filename: string): Promise<U
     }
   }
 
-  // 2. Cloudflare R2 / AWS S3 S3-compatible integration
+  // 3. Cloudflare R2 / AWS S3 S3-compatible integration
   if ((provider === "AWS_S3" || provider === "CLOUDFLARE_R2") && process.env.STORAGE_ACCESS_KEY) {
     // S3/R2 direct upload support
     const endpoint = process.env.STORAGE_ENDPOINT || "";
@@ -50,7 +73,7 @@ export async function uploadFile(file: File | Blob, filename: string): Promise<U
     };
   }
 
-  // 3. Resilient fallback for local testing & development without credentials
+  // 4. Resilient fallback for local testing & development without credentials
   // Converts file to Base64 or local public URL
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);

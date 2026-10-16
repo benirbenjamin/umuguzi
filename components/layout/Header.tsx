@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useApp } from "../providers/AppProviders";
 import { Language } from "@/lib/i18n";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 export default function Header() {
   const router = useRouter();
@@ -112,9 +113,9 @@ export default function Header() {
         </form>
 
         {/* Right: Navigation, Actions, Language & Auth */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
           {/* Quick Nav Links for Desktop */}
-          <nav className="hidden lg:flex items-center gap-1 mr-1 text-sm font-medium text-slate-600">
+          <nav className="hidden xl:flex items-center gap-0.5 mr-1 text-xs xl:text-sm font-medium text-slate-600">
             <Link href="/explore" className="px-2.5 py-1.5 rounded-lg hover:text-slate-900 hover:bg-slate-100 transition-colors">
               {t.explore}
             </Link>
@@ -178,69 +179,81 @@ export default function Header() {
 
           {/* Auth State */}
           {user ? (
-            <div className="relative">
-              <button
-                onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-slate-300 transition-all"
-              >
-                {user.avatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={user.avatar}
-                    alt={user.displayName}
-                    className="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-sm"
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center font-bold text-xs uppercase shadow-sm">
-                    {user.displayName?.charAt(0) || user.username?.charAt(0) || "U"}
-                  </div>
-                )}
-              </button>
+            <div className="flex items-center gap-2">
+              {/* In-App & Native Push Notification Bell */}
+              <NotificationBell />
 
-              {profileDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-60 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-50 divide-y divide-slate-100 animate-in fade-in zoom-in-95">
-                  <div className="px-4 py-3">
-                    <p className="text-sm font-bold text-slate-900 truncate">{user.displayName}</p>
-                    <p className="text-xs text-slate-500 truncate">@{user.username}</p>
-                    <span className="mt-1 inline-block px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-blue-50 text-blue-700">
-                      {user.role}
-                    </span>
-                  </div>
+              <div className="relative">
+                <button
+                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  className="flex items-center gap-2 p-1 rounded-full hover:ring-2 hover:ring-slate-300 transition-all"
+                >
+                  {user.avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={user.avatar}
+                      alt={user.displayName}
+                      className="w-8 h-8 rounded-full object-cover border border-slate-200 shadow-sm"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center font-bold text-xs uppercase shadow-sm">
+                      {user.displayName?.charAt(0) || user.username?.charAt(0) || "U"}
+                    </div>
+                  )}
+                </button>
 
-                  <div className="py-1">
-                    <Link
-                      href="/studio"
-                      onClick={() => setProfileDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 hover:text-brand"
-                    >
-                      <VideoIcon className="w-4 h-4 text-slate-400" />
-                      {t.studio}
-                    </Link>
-                    <Link
-                      href="/dashboard"
-                      onClick={() => setProfileDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 hover:text-brand"
-                    >
-                      <LayoutDashboard className="w-4 h-4 text-slate-400" />
-                      {t.dashboard}
-                    </Link>
-                    <Link
-                      href="/dashboard/wallet"
-                      onClick={() => setProfileDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 hover:text-brand"
-                    >
-                      <Wallet className="w-4 h-4 text-slate-400" />
-                      {t.wallet}
-                    </Link>
-                    <Link
-                      href="/dashboard/services"
-                      onClick={() => setProfileDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 hover:text-brand"
-                    >
-                      <Briefcase className="w-4 h-4 text-slate-400" />
-                      My Services
-                    </Link>
-                  </div>
+                {profileDropdownOpen && (
+                  <div className="absolute right-0 mt-2 w-60 bg-white border border-slate-200 rounded-2xl shadow-xl py-2 z-50 divide-y divide-slate-100 animate-in fade-in zoom-in-95">
+                    <div className="px-4 py-3">
+                      <p className="text-sm font-bold text-slate-900 truncate">{user.displayName}</p>
+                      <p className="text-xs text-slate-500 truncate">@{user.username}</p>
+                      <span className="mt-1 inline-block px-2 py-0.5 text-[10px] font-bold uppercase rounded bg-blue-50 text-blue-700">
+                        {user.role}
+                      </span>
+                    </div>
+
+                    <div className="py-1">
+                      <Link
+                        href="/studio"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 hover:text-brand"
+                      >
+                        <VideoIcon className="w-4 h-4 text-slate-400" />
+                        {t.studio}
+                      </Link>
+                      <Link
+                        href="/dashboard"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 hover:text-brand"
+                      >
+                        <LayoutDashboard className="w-4 h-4 text-slate-400" />
+                        {t.dashboard}
+                      </Link>
+                      <Link
+                        href="/dashboard/wallet"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 hover:text-brand"
+                      >
+                        <Wallet className="w-4 h-4 text-slate-400" />
+                        {t.wallet}
+                      </Link>
+                      <Link
+                        href="/dashboard/services"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm text-slate-700 hover:bg-slate-50 hover:text-brand"
+                      >
+                        <Briefcase className="w-4 h-4 text-slate-400" />
+                        My Services
+                      </Link>
+                      <Link
+                        href="/products/create"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-2.5 px-4 py-2 text-xs sm:text-sm text-emerald-700 font-semibold hover:bg-emerald-50"
+                      >
+                        <Store className="w-4 h-4 text-emerald-600" />
+                        + Sell Digital Product
+                      </Link>
+                    </div>
 
                   {isAdmin && (
                     <div className="py-1 bg-amber-50/50">
@@ -271,16 +284,16 @@ export default function Header() {
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <Link
                 href="/login"
-                className="px-3 py-1.5 rounded-full border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs sm:text-sm font-semibold transition-colors"
+                className="whitespace-nowrap shrink-0 inline-flex items-center justify-center px-3.5 sm:px-4 py-1.5 rounded-full border border-slate-300 bg-white text-slate-700 hover:text-slate-900 hover:border-slate-400 hover:bg-slate-50 text-xs sm:text-sm font-semibold transition-all shadow-2xs"
               >
                 {t.signIn}
               </Link>
               <Link
                 href="/register"
-                className="hidden sm:inline-flex px-3.5 py-1.5 rounded-full bg-brand hover:bg-brand-hover text-white text-xs sm:text-sm font-semibold shadow-sm transition-all"
+                className="whitespace-nowrap shrink-0 inline-flex items-center justify-center px-3.5 sm:px-4 py-1.5 rounded-full bg-brand hover:bg-brand-hover text-white text-xs sm:text-sm font-semibold shadow-sm transition-all hover:shadow"
               >
                 {t.register}
               </Link>

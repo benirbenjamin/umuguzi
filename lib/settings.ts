@@ -35,6 +35,24 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   email_verification_enabled: "false",
   resend_api_key: "",
   email_from: "",
+  referral_system_enabled: "true",
+  multilevel_referral_enabled: "true",
+  referral_commission_rate: "5",
+  multilevel_level2_rate: "3",
+  multilevel_level3_rate: "1",
+  google_drive_accounts: "[]",
+  google_drive_auto_failover: "true",
+  ads_enabled: "true",
+  adsense_client_id: "ca-pub-4078466828008985",
+  adsense_slot_id: "7034214536",
+  monetization_min_subscribers: "30",
+  monetization_min_watch_hours: "300",
+  ad_reward_view_rwf: "3",
+  ad_reward_click_rwf: "4",
+  ad_initial_delay_seconds: "15",
+  ad_interval_seconds: "300",
+  ad_duration_seconds: "12",
+  ad_skip_delay_seconds: "8",
 };
 
 let cachedSettings: SiteSettings | null = null;
@@ -90,6 +108,8 @@ export async function updateSiteSettings(entries: Record<string, string>): Promi
       category = "PAYMENTS";
     } else if (key.startsWith("resend_") || key.startsWith("email_") || key.startsWith("smtp_")) {
       category = "EMAIL";
+    } else if (key.startsWith("ad_") || key.startsWith("ads_") || key.startsWith("adsense_") || key.startsWith("monetization_")) {
+      category = "ADS";
     }
 
     await prisma.siteSetting.upsert({

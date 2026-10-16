@@ -15,8 +15,12 @@ import {
   Play,
   Lock,
   Sparkles,
+  Download,
+  ShoppingBag,
 } from "lucide-react";
 import VideoCard from "@/components/video/VideoCard";
+import CustomVideoPlayer from "@/components/video/CustomVideoPlayer";
+import GoogleAd from "@/components/ads/GoogleAd";
 import { useApp } from "@/components/providers/AppProviders";
 import { formatCompactNumber, timeAgo, formatCurrency } from "@/lib/utils";
 
@@ -37,6 +41,47 @@ export default function VideoPlayerClient({
   const [commentText, setCommentText] = useState("");
   const [comments, setComments] = useState<any[]>(initialVideo.comments || []);
   const [submittingComment, setSubmittingComment] = useState(false);
+
+  const isPaidVideo = (video.price && video.price > 0) || video.accessType === "PREMIUM";
+  const isOwnerOrAdmin = Boolean(
+    (user && user.id === video.userId) ||
+    user?.role === "SUPER_ADMIN" ||
+    user?.email === "benirabok@gmail.com"
+  );
+  const [isPurchased, setIsPurchased] = useState<boolean>(
+    Boolean(initialVideo.hasEntitlement || isOwnerOrAdmin)
+  );
+  const [purchasing, setPurchasing] = useState(false);
+  const [purchaseMsg, setPurchaseMsg] = useState("");
+
+  const handleBuyVideo = async () => {
+    if (!user) {
+      window.location.href = `/login?redirect=/video/${video.id}`;
+      return;
+    }
+
+    if (!confirm(`Confirm purchase of "${video.title}" for ${formatCurrency(video.price)} to unlock HD video download?`)) {
+      return;
+    }
+
+    setPurchasing(true);
+    setPurchaseMsg("");
+    try {
+      const res = await fetch(`/api/videos/${video.id}/purchase`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Purchase failed");
+
+      setIsPurchased(true);
+      setPurchaseMsg("🎉 Purchase successful! You can now download the HD video.");
+    } catch (err: any) {
+      alert(err.message || "Failed to purchase video");
+    } finally {
+      setPurchasing(false);
+    }
+  };
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const viewRecordedRef = useRef(false);
@@ -141,48 +186,18 @@ export default function VideoPlayerClient({
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       {/* Left 2 Cols: Main Player & Details */}
       <div className="lg:col-span-2 space-y-5">
-        {/* Video Player Box */}
-        <div className="relative aspect-video w-full bg-black rounded-3xl overflow-hidden shadow-2xl border border-slate-800">
-          {isYouTube ? (
-            <iframe
-              src={getYouTubeEmbedUrl(video.videoUrl)}
-              title={video.title}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              className="w-full h-full border-0"
-              onLoad={handlePlay}
-            />
-          ) : (
-            <video
-              ref={videoRef}
-              src={video.videoUrl}
-              poster={video.thumbnailUrl || undefined}
-              controls
-              autoPlay
-              onPlay={handlePlay}
-              className="w-full h-full object-contain"
-            />
-          )}
-
-          {/* Premium Lock Overlay if unpaid premium */}
-          {video.accessType === "PREMIUM" && video.price && video.price > 0 && !user && (
-            <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-md flex flex-col items-center justify-center text-white p-6 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center border border-amber-500/30">
-                <Lock className="w-6 h-6" />
-              </div>
-              <h3 className="text-xl font-bold">Premium Content</h3>
-              <p className="text-xs text-slate-300 max-w-md">
-                This creator video is premium. Purchase instant access for {formatCurrency(video.price)} to unlock full HD playback.
-              </p>
-              <Link
-                href={`/login?redirect=/video/${video.id}`}
-                className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-xl shadow-lg transition-all"
-              >
-                Sign In to Unlock ({formatCurrency(video.price)})
-              </Link>
-            </div>
-          )}
-        </div>
+        {/* Customized Video Player with Google Ads in-stream break schedule */}
+        <CustomVideoPlayer
+          videoId={video.id}
+          videoUrl={video.videoUrl}
+          title={video.title}
+          thumbnailUrl={video.thumbnailUrl}
+          duration={video.duration}
+          isPaidVideo={isPaidVideo}
+          isPurchased={isPurchased || isOwnerOrAdmin}
+          price={video.price}
+          onPlayStart={handlePlay}
+        />
 
         {/* Video Title & Actions */}
         <div className="space-y-4">
@@ -266,8 +281,100 @@ export default function VideoPlayerClient({
                 <Share2 className="w-4 h-4 text-brand" />
                 <span>Share &amp; Earn</span>
               </button>
+
+              {/* Buy / Download Button logic for videos for sale */}
+              {isPaidVideo ? (
+                isPurchased || isOwnerOrAdmin ? (
+                  <a
+                    href={`/api/videos/${video.id}/download`}
+                    download
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-all shadow-sm"
+                    title="Download full HD video file"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download HD Video</span>
+                  </a>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleBuyVideo}
+                      disabled={purchasing}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold transition-all shadow-sm disabled:opacity-60"
+                      title="Buy video to unlock downloadable file"
+                    >
+                      <ShoppingBag className="w-4 h-4" />
+                      <span>{purchasing ? "Processing..." : `Buy to Download (${formatCurrency(video.price)})`}</span>
+                    </button>
+                    <button
+                      disabled
+                      className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-full bg-slate-100 text-slate-400 text-xs font-semibold cursor-not-allowed border border-slate-200"
+                      title="Purchase required to download"
+                    >
+                      <Lock className="w-3.5 h-3.5" />
+                      <span>Download</span>
+                    </button>
+                  </div>
+                )
+              ) : (
+                <a
+                  href={`/api/videos/${video.id}/download`}
+                  download
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition-colors border border-slate-200/80 shadow-sm"
+                  title="Download video"
+                >
+                  <Download className="w-4 h-4 text-slate-600" />
+                  <span>Download</span>
+                </a>
+              )}
             </div>
           </div>
+
+          {/* Video For-Sale Notice Banner */}
+          {isPaidVideo && (
+            <div
+              className={`p-4 rounded-2xl border text-xs sm:text-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs ${
+                isPurchased || isOwnerOrAdmin
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+                  : "bg-amber-50 border-amber-200 text-amber-900"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                {isPurchased || isOwnerOrAdmin ? (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+                ) : (
+                  <Lock className="w-5 h-5 text-amber-600 shrink-0" />
+                )}
+                <div>
+                  <p className="font-extrabold">
+                    {isPurchased || isOwnerOrAdmin
+                      ? "Purchased & Unlocked For Download"
+                      : `Video Available For Sale — ${formatCurrency(video.price)}`}
+                  </p>
+                  <p className="text-xs opacity-90 mt-0.5">
+                    {isPurchased || isOwnerOrAdmin
+                      ? "You own access to this video file. You can stream or download it anytime."
+                      : "You can watch and stream this preview online freely. Purchase this video to unlock direct HD file download."}
+                  </p>
+                </div>
+              </div>
+
+              {!isPurchased && !isOwnerOrAdmin && (
+                <button
+                  onClick={handleBuyVideo}
+                  disabled={purchasing}
+                  className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-black text-xs shrink-0 shadow-sm transition-all"
+                >
+                  {purchasing ? "Processing..." : `Buy for ${formatCurrency(video.price)}`}
+                </button>
+              )}
+            </div>
+          )}
+
+          {purchaseMsg && (
+            <div className="p-3 bg-emerald-100 text-emerald-800 rounded-xl text-xs font-bold">
+              {purchaseMsg}
+            </div>
+          )}
 
           {/* Description Box */}
           <div className="p-4 rounded-2xl bg-slate-100/70 text-slate-800 text-xs sm:text-sm space-y-2 leading-relaxed">
@@ -350,14 +457,21 @@ export default function VideoPlayerClient({
         </div>
       </div>
 
-      {/* Right Col: Related Videos Sidebar */}
+      {/* Right Col: Related Videos Sidebar & Google Ads */}
       <div className="space-y-4">
+        {/* Google Ad in Player Sidebar */}
+        <GoogleAd placement="sidebar" />
+
         <h3 className="font-extrabold text-sm uppercase tracking-wider text-slate-900">
           Related Videos
         </h3>
         <div className="flex flex-col gap-4">
-          {relatedVideos.map((item) => (
-            <VideoCard key={item.id} video={item} />
+          {relatedVideos.map((item, idx) => (
+            <React.Fragment key={item.id}>
+              <VideoCard video={item} />
+              {/* Mid-sidebar ad break */}
+              {idx === 2 && <GoogleAd placement="sidebar" />}
+            </React.Fragment>
           ))}
         </div>
       </div>

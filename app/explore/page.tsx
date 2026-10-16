@@ -3,9 +3,11 @@ import Link from "next/link";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import VideoCard from "@/components/video/VideoCard";
+import GoogleAd from "@/components/ads/GoogleAd";
 import prisma from "@/lib/prisma";
 import { Compass, Flame, Clock } from "lucide-react";
 import { VideoItem } from "@/types";
+import { RWANDA_CATEGORIES, RWANDA_SAMPLE_VIDEOS } from "@/lib/rwandaSampleData";
 
 export const dynamic = "force-dynamic";
 
@@ -53,10 +55,34 @@ export default async function ExplorePage({
         orderBy: { name: "asc" },
       }),
     ]);
-    videos = results[0];
-    categories = results[1];
+    videos = results[0] || [];
+    categories = results[1] || [];
   } catch (err) {
     console.warn("Could not load explore data from DB:", err);
+  }
+
+  // Graceful fallback to real Rwandan dataset if DB has no records or failed
+  if (!categories || categories.length === 0) {
+    categories = RWANDA_CATEGORIES;
+  }
+
+  if (!videos || videos.length === 0) {
+    let filtered = [...RWANDA_SAMPLE_VIDEOS];
+    if (selectedCategorySlug) {
+      filtered = filtered.filter(
+        (v) =>
+          v.category?.slug === selectedCategorySlug ||
+          (selectedCategorySlug === "music" && (v.category?.slug === "music" || v.category?.slug === "gospel")) ||
+          (selectedCategorySlug === "gospel" && (v.category?.slug === "gospel" || v.category?.slug === "music")) ||
+          (selectedCategorySlug === "films" && (v.category?.slug === "films" || v.category?.slug === "entertainment"))
+      );
+    }
+    if (activeTab === "latest") {
+      filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } else {
+      filtered.sort((a, b) => (b.views || 0) - (a.views || 0));
+    }
+    videos = filtered;
   }
 
   return (
@@ -124,11 +150,23 @@ export default async function ExplorePage({
           ))}
         </div>
 
-        {/* Video Grid */}
+        {/* Video Grid with In-Feed Google Ads */}
         {videos.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {videos.map((vid) => (
-              <VideoCard key={vid.id} video={vid as unknown as VideoItem} />
+            {videos.map((vid, idx) => (
+              <React.Fragment key={vid.id}>
+                <VideoCard video={vid as unknown as VideoItem} />
+                {idx === 3 && (
+                  <div className="col-span-full">
+                    <GoogleAd placement="feed" />
+                  </div>
+                )}
+                {idx === 11 && (
+                  <div className="col-span-full">
+                    <GoogleAd placement="feed" />
+                  </div>
+                )}
+              </React.Fragment>
             ))}
           </div>
         ) : (

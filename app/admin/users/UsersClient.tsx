@@ -27,6 +27,37 @@ export default function UsersClient({ initialUsers }: { initialUsers: any[] }) {
     } finally {
       setUpdatingId(null);
     }
+  const handleDeleteUser = async (targetUser: any) => {
+    if (targetUser.email.toLowerCase() === "benirabok@gmail.com") {
+      alert("The primary Super Admin (benirabok@gmail.com) is permanently protected and cannot be deleted.");
+      return;
+    }
+
+    const isTargetAdmin = targetUser.role === "ADMIN" || targetUser.role === "SUPER_ADMIN" || targetUser.role === "MODERATOR";
+    const confirmMsg = isTargetAdmin
+      ? `⚠️ WARNING: You are about to permanently delete an ADMINISTRATOR account (${targetUser.displayName} - ${targetUser.email}). Proceed?`
+      : `Are you sure you want to permanently delete ${targetUser.displayName} (@${targetUser.username})? This action cannot be undone.`;
+
+    if (!confirm(confirmMsg)) return;
+
+    setUpdatingId(targetUser.id);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId: targetUser.id, action: "DELETE" }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete user");
+
+      setUsers(users.filter((u) => u.id !== targetUser.id));
+      alert("User account has been permanently removed.");
+    } catch (err: any) {
+      alert(err.message || "Failed to delete user account.");
+    } finally {
+      setUpdatingId(null);
+    }
   };
 
   const filtered = users.filter(
@@ -121,26 +152,43 @@ export default function UsersClient({ initialUsers }: { initialUsers: any[] }) {
 
                   <td className="py-3 px-4 text-slate-400">{timeAgo(u.createdAt)}</td>
 
-                  <td className="py-3 px-4 text-right space-x-2">
-                    <button
-                      onClick={() => handleAction(u.id, u.isVerified ? "UNVERIFY" : "VERIFY")}
-                      disabled={updatingId === u.id}
-                      className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-[11px]"
-                    >
-                      {u.isVerified ? "Unverify" : "Verify Badge"}
-                    </button>
+                  <td className="py-3 px-4 text-right space-x-1.5 whitespace-nowrap">
+                    {u.email.toLowerCase() === "benirabok@gmail.com" ? (
+                      <span className="text-[11px] text-amber-700 font-bold bg-amber-50 px-2 py-1 rounded-md border border-amber-200">
+                        ⭐ Protected Super Admin
+                      </span>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => handleAction(u.id, u.isVerified ? "UNVERIFY" : "VERIFY")}
+                          disabled={updatingId === u.id}
+                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-[11px]"
+                        >
+                          {u.isVerified ? "Unverify" : "Verify Badge"}
+                        </button>
 
-                    <button
-                      onClick={() => handleAction(u.id, u.isBanned ? "UNBAN" : "BAN")}
-                      disabled={updatingId === u.id}
-                      className={`px-2.5 py-1 font-semibold rounded-lg text-[11px] ${
-                        u.isBanned
-                          ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
-                          : "bg-red-100 text-red-800 hover:bg-red-200"
-                      }`}
-                    >
-                      {u.isBanned ? "Lift Ban" : "Suspend User"}
-                    </button>
+                        <button
+                          onClick={() => handleAction(u.id, u.isBanned ? "UNBAN" : "BAN")}
+                          disabled={updatingId === u.id}
+                          className={`px-2.5 py-1 font-semibold rounded-lg text-[11px] ${
+                            u.isBanned
+                              ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                              : "bg-amber-100 text-amber-800 hover:bg-amber-200"
+                          }`}
+                        >
+                          {u.isBanned ? "Lift Ban" : "Suspend"}
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteUser(u)}
+                          disabled={updatingId === u.id}
+                          className="px-2.5 py-1 bg-red-100 hover:bg-red-200 text-red-700 font-bold rounded-lg text-[11px] transition-colors"
+                          title="Permanently delete user or admin"
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               ))}

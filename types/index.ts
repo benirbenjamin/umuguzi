@@ -51,12 +51,30 @@ export interface SiteSettings {
   manual_payment_instructions: string;
   manual_payment_account_name: string;
   manual_payment_account_number: string;
-  storage_provider: string; // VERCEL_BLOB, AWS_S3, CLOUDFLARE_R2
+  storage_provider: string; // VERCEL_BLOB, AWS_S3, CLOUDFLARE_R2, GOOGLE_DRIVE
   maintenance_mode: string;
   two_factor_enabled?: string;
   email_verification_enabled?: string;
   resend_api_key?: string;
   email_from?: string;
+  referral_system_enabled?: string; // "true" | "false"
+  multilevel_referral_enabled?: string; // "true" | "false"
+  referral_commission_rate?: string; // percentage, e.g. "5"
+  multilevel_level2_rate?: string; // percentage, e.g. "3"
+  multilevel_level3_rate?: string; // percentage, e.g. "1"
+  google_drive_accounts?: string; // JSON string of account pool
+  google_drive_auto_failover?: string; // "true" | "false"
+  ads_enabled?: string; // "true" | "false"
+  adsense_client_id?: string; // e.g. "ca-pub-4078466828008985"
+  adsense_slot_id?: string; // e.g. "7034214536"
+  monetization_min_subscribers?: string; // e.g. "30"
+  monetization_min_watch_hours?: string; // e.g. "300"
+  ad_reward_view_rwf?: string; // e.g. "3"
+  ad_reward_click_rwf?: string; // e.g. "4"
+  ad_initial_delay_seconds?: string; // e.g. "15"
+  ad_interval_seconds?: string; // e.g. "300"
+  ad_duration_seconds?: string; // e.g. "12"
+  ad_skip_delay_seconds?: string; // e.g. "8"
 }
 
 export interface VideoItem {

