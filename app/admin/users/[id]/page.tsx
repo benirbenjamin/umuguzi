@@ -15,7 +15,7 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
   const user = await prisma.user.findUnique({
     where: { id: params.id },
     include: {
-      channel: true,
+      channels: true,
       wallet: {
         include: {
           transactions: {
@@ -42,8 +42,10 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
     notFound();
   }
 
+  const primaryChannel = user.channels && user.channels.length > 0 ? user.channels[0] : null;
+
   // 1. Calculate Total Views
-  let totalViews = user.channel?.totalViews || 0;
+  let totalViews = primaryChannel?.totalViews || 0;
   for (const v of user.videos) {
     totalViews += v.views || 0;
   }
@@ -58,7 +60,7 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
   const totalWatchHours = totalWatchSeconds / 3600;
 
   // 3. Subscribers Count
-  const subscribersCount = user.channel?.subscriberCount || 0;
+  const subscribersCount = primaryChannel?.subscriberCount || 0;
 
   // 4. Referrals Count
   const referralsCount = await prisma.user.count({
@@ -72,5 +74,5 @@ export default async function AdminUserDetailPage({ params }: { params: { id: st
     referralsCount,
   };
 
-  return <UserDetailClient user={user} analytics={analytics} />;
+  return <UserDetailClient user={{ ...user, channel: primaryChannel }} analytics={analytics} />;
 }
