@@ -27,6 +27,8 @@ export default function UsersClient({ initialUsers }: { initialUsers: any[] }) {
     } finally {
       setUpdatingId(null);
     }
+  };
+
   const handleDeleteUser = async (targetUser: any) => {
     if (targetUser.email.toLowerCase() === "benirabok@gmail.com") {
       alert("The primary Super Admin (benirabok@gmail.com) is permanently protected and cannot be deleted.");
