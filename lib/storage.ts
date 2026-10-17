@@ -12,25 +12,29 @@ export interface UploadResult {
 export async function uploadFile(file: File | Blob, filename: string): Promise<UploadResult> {
   const settings = await getSiteSettings();
   const provider = settings.storage_provider || "VERCEL_BLOB";
+  const isVideo = (file as any).type?.startsWith("video/") || filename.match(/\.(mp4|webm|mov|mkv|avi|m4v)$/i);
 
-  // 1. Google Drive Multi-Drive Pool (when configured)
-  if (provider === "GOOGLE_DRIVE") {
+  // 1. Google Drive Multi-Drive Pool (when configured or when uploading video)
+  if (provider === "GOOGLE_DRIVE" || isVideo) {
     try {
-      const { uploadToMultiGoogleDrive } = await import("./googleDrive");
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      const mimeType = (file as any).type || "video/mp4";
+      const { uploadToMultiGoogleDrive, getGoogleDriveAccounts } = await import("./googleDrive");
+      const accounts = await getGoogleDriveAccounts();
+      if (accounts.length > 0) {
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const mimeType = (file as any).type || "video/mp4";
 
-      const driveRes = await uploadToMultiGoogleDrive(buffer, filename, mimeType);
-      return {
-        url: driveRes.viewUrl,
-        downloadUrl: driveRes.downloadUrl,
-        fileId: driveRes.fileId,
-        provider: "GOOGLE_DRIVE",
-        size: driveRes.size,
-      };
+        const driveRes = await uploadToMultiGoogleDrive(buffer, filename, mimeType);
+        return {
+          url: driveRes.viewUrl,
+          downloadUrl: driveRes.downloadUrl,
+          fileId: driveRes.fileId,
+          provider: "GOOGLE_DRIVE",
+          size: driveRes.size,
+        };
+      }
     } catch (error: any) {
-      console.warn("Google Drive pool upload failed, falling back to other providers:", error.message);
+      console.warn("Google Drive multi-drive pool upload failed, falling back to other providers:", error.message);
     }
   }
 

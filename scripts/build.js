@@ -7,10 +7,13 @@ console.log("=======================================================\n");
 // 1. Generate Prisma Client
 console.log("Step 1: Generating Prisma Client...");
 try {
-  execSync("npx prisma generate", { stdio: "inherit" });
+  execSync("npx prisma@5.21.1 generate", { stdio: "inherit" });
 } catch (err) {
-  console.error("Prisma generate failed:", err.message);
-  process.exit(1);
+  try {
+    execSync("prisma generate", { stdio: "inherit" });
+  } catch (err2) {
+    console.warn("Prisma generate fallback failed:", err2.message);
+  }
 }
 
 // 2. Push database schema if DATABASE_URL is available

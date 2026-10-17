@@ -19,9 +19,23 @@ import {
   Megaphone,
   DollarSign,
   Sparkles,
+  Cloud,
+  Plus,
+  Trash2,
+  RefreshCw,
+  Server,
 } from "lucide-react";
 import { useApp } from "@/components/providers/AppProviders";
 import { SiteSettings } from "@/types";
+
+interface DriveAccountConfig {
+  id: string;
+  name: string;
+  clientId: string;
+  clientSecret: string;
+  refreshToken: string;
+  folderId?: string;
+}
 
 export default function SettingsClient({ initialSettings }: { initialSettings: SiteSettings }) {
   const { updateLocalSettings } = useApp();
@@ -34,6 +48,103 @@ export default function SettingsClient({ initialSettings }: { initialSettings: S
   const [testEmailRecipient, setTestEmailRecipient] = useState("");
   const [testingEmail, setTestingEmail] = useState(false);
   const [testEmailResult, setTestEmailResult] = useState<any>(null);
+
+  // Google Drive Multi-Drive Pool State
+  const [driveAccounts, setDriveAccounts] = useState<DriveAccountConfig[]>(() => {
+    try {
+      if (initialSettings.google_drive_accounts) {
+        const parsed = JSON.parse(initialSettings.google_drive_accounts);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return [
+      {
+        id: "drive-1",
+        name: "Primary Google Drive (Drive #1)",
+        clientId: "",
+        clientSecret: "",
+        refreshToken: "",
+        folderId: "",
+      },
+      {
+        id: "drive-2",
+        name: "Secondary Failover Google Drive (Drive #2)",
+        clientId: "",
+        clientSecret: "",
+        refreshToken: "",
+        folderId: "",
+      },
+    ];
+  });
+  const [testingDriveId, setTestingDriveId] = useState<string | null>(null);
+  const [driveTestResults, setDriveTestResults] = useState<Record<string, any>>({});
+
+  const handleDriveAccountChange = (id: string, field: keyof DriveAccountConfig, value: string) => {
+    setDriveAccounts((prev) => {
+      const updated = prev.map((acc) => (acc.id === id ? { ...acc, [field]: value } : acc));
+      handleChange("google_drive_accounts", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleAddDriveAccount = () => {
+    setDriveAccounts((prev) => {
+      const nextNum = prev.length + 1;
+      const newAcc: DriveAccountConfig = {
+        id: `drive-${Date.now().toString().slice(-4)}`,
+        name: `Failover Google Drive #${nextNum}`,
+        clientId: "",
+        clientSecret: "",
+        refreshToken: "",
+        folderId: "",
+      };
+      const updated = [...prev, newAcc];
+      handleChange("google_drive_accounts", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleRemoveDriveAccount = (id: string) => {
+    setDriveAccounts((prev) => {
+      const updated = prev.filter((acc) => acc.id !== id);
+      handleChange("google_drive_accounts", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleTestDrive = async (account: DriveAccountConfig) => {
+    if (!account.clientId || !account.refreshToken) {
+      setDriveTestResults((prev) => ({
+        ...prev,
+        [account.id]: { success: false, error: "Please provide Client ID and Refresh Token first." },
+      }));
+      return;
+    }
+
+    setTestingDriveId(account.id);
+    setDriveTestResults((prev) => ({ ...prev, [account.id]: null }));
+    try {
+      const res = await fetch("/api/admin/drives/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: account.clientId,
+          clientSecret: account.clientSecret,
+          refreshToken: account.refreshToken,
+          name: account.name,
+        }),
+      });
+      const data = await res.json();
+      setDriveTestResults((prev) => ({ ...prev, [account.id]: data }));
+    } catch (err: any) {
+      setDriveTestResults((prev) => ({
+        ...prev,
+        [account.id]: { success: false, error: err.message || "Connection failed" },
+      }));
+    } finally {
+      setTestingDriveId(null);
+    }
+  };
 
   const handleTestEmail = async () => {
     if (!testEmailRecipient) return;
@@ -616,25 +727,251 @@ export default function SettingsClient({ initialSettings }: { initialSettings: S
 
         {/* Tab 4: Cloud Storage */}
         {activeTab === "storage" && (
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
-            <h3 className="font-extrabold text-base text-slate-900">Cloud Storage Provider</h3>
-
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-8">
             <div>
+              <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+                <Cloud className="w-5 h-5 text-brand" /> Cloud Storage &amp; Multi-Drive Infrastructure
+              </h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Configure your video and media storage providers. Umuguzipro supports cascading Google Drive storage pools with refresh-token auto-failover, Vercel Blob, AWS S3, and Cloudflare R2.
+              </p>
+            </div>
+
+            {/* Provider Selector */}
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
               <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
                 Primary Storage Provider
               </label>
               <select
                 value={formData.storage_provider}
                 onChange={(e) => handleChange("storage_provider", e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm bg-white font-bold"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm bg-white font-bold text-slate-900"
               >
-                <option value="VERCEL_BLOB">Vercel Blob Storage (Primary Recommended)</option>
+                <option value="GOOGLE_DRIVE">Google Drive Multi-Account Cloud (Cascading Refresh-Token Pool)</option>
+                <option value="VERCEL_BLOB">Vercel Blob Storage (Fast Edge CDN)</option>
                 <option value="AWS_S3">Amazon Web Services S3</option>
                 <option value="CLOUDFLARE_R2">Cloudflare R2</option>
               </select>
-              <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                Configure your respective environment credentials in <code>.env</code> (e.g. <code>BLOB_READ_WRITE_TOKEN</code> for Vercel Blob, or <code>STORAGE_ACCESS_KEY</code> for AWS/R2).
+              <p className="text-xs text-slate-500 leading-relaxed">
+                {formData.storage_provider === "GOOGLE_DRIVE" && (
+                  <span>
+                    <strong>Recommended for Unlimited Video Storage:</strong> Stores videos across multiple Google Drive accounts. When one drive reaches its 15GB or quota limit, uploads fail over automatically to subsequent drives in the pool.
+                  </span>
+                )}
+                {formData.storage_provider === "VERCEL_BLOB" && (
+                  <span>Requires <code>BLOB_READ_WRITE_TOKEN</code> in your environment variables. High-speed video delivery via Vercel Edge.</span>
+                )}
+                {(formData.storage_provider === "AWS_S3" || formData.storage_provider === "CLOUDFLARE_R2") && (
+                  <span>Requires <code>STORAGE_ACCESS_KEY</code>, <code>STORAGE_SECRET_KEY</code>, and <code>STORAGE_ENDPOINT</code>.</span>
+                )}
               </p>
+            </div>
+
+            {/* Google Drive Multi-Drive Pool Configuration */}
+            <div className="border border-blue-200 bg-blue-50/40 rounded-2xl p-5 sm:p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <h4 className="font-extrabold text-sm text-slate-900">
+                      Google Drive Multi-Account Cascading Pool
+                    </h4>
+                  </div>
+                  <p className="text-xs text-slate-600 mt-1 max-w-2xl">
+                    Configure multiple Google Drive OAuth accounts. If Account #1 hits its storage limit (15GB free quota) or rate limit, new video uploads cascade seamlessly to Account #2, then Account #3.
+                  </p>
+                </div>
+
+                {/* Auto Failover Toggle */}
+                <div className="flex items-center gap-3 bg-white px-3.5 py-2 rounded-xl border border-blue-200 shrink-0">
+                  <span className="text-xs font-bold text-slate-700">Auto-Failover</span>
+                  <select
+                    value={formData.google_drive_auto_failover || "true"}
+                    onChange={(e) => handleChange("google_drive_auto_failover", e.target.value)}
+                    className="text-xs font-bold text-brand bg-transparent focus:outline-none"
+                  >
+                    <option value="true">Enabled (Auto-Cascade)</option>
+                    <option value="false">Disabled (Single Drive)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Drive Accounts List */}
+              <div className="space-y-4">
+                {driveAccounts.map((account, index) => {
+                  const testRes = driveTestResults[account.id];
+                  const isTesting = testingDriveId === account.id;
+
+                  return (
+                    <div
+                      key={account.id}
+                      className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm space-y-4 transition-all"
+                    >
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <div className="flex items-center gap-2.5">
+                          <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider ${
+                            index === 0
+                              ? "bg-brand text-white"
+                              : "bg-purple-100 text-purple-700 border border-purple-200"
+                          }`}>
+                            {index === 0 ? "Drive #1 (Primary)" : `Drive #${index + 1} (Failover ${index})`}
+                          </span>
+                          <span className="font-bold text-xs text-slate-800">{account.name}</span>
+                        </div>
+
+                        {driveAccounts.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveDriveAccount(account.id)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            title="Remove account from pool"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Account Label / Name
+                          </label>
+                          <input
+                            type="text"
+                            value={account.name}
+                            onChange={(e) => handleDriveAccountChange(account.id, "name", e.target.value)}
+                            placeholder="e.g. Main Rwanda Google Drive 15GB"
+                            className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-slate-50 focus:bg-white"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Folder ID (Optional destination folder)
+                          </label>
+                          <input
+                            type="text"
+                            value={account.folderId || ""}
+                            onChange={(e) => handleDriveAccountChange(account.id, "folderId", e.target.value)}
+                            placeholder="e.g. 1a2B3c4D5e... (Leave blank for root)"
+                            className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-slate-50 focus:bg-white font-mono"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Google Client ID *
+                          </label>
+                          <input
+                            type="text"
+                            value={account.clientId}
+                            onChange={(e) => handleDriveAccountChange(account.id, "clientId", e.target.value)}
+                            placeholder="xxxx.apps.googleusercontent.com"
+                            className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-slate-50 focus:bg-white font-mono"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Google Client Secret *
+                          </label>
+                          <input
+                            type="password"
+                            value={account.clientSecret}
+                            onChange={(e) => handleDriveAccountChange(account.id, "clientSecret", e.target.value)}
+                            placeholder="GOCSPX-xxxxxxxxxxxxxx"
+                            className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-slate-50 focus:bg-white font-mono"
+                          />
+                        </div>
+
+                        <div className="sm:col-span-2">
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                            Google Refresh Token * (Permanent token for auto-refreshing video uploads)
+                          </label>
+                          <input
+                            type="password"
+                            value={account.refreshToken}
+                            onChange={(e) => handleDriveAccountChange(account.id, "refreshToken", e.target.value)}
+                            placeholder="1//0xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                            className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs bg-slate-50 focus:bg-white font-mono"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Test Connection Button & Result */}
+                      <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-t border-slate-100">
+                        <button
+                          type="button"
+                          onClick={() => handleTestDrive(account)}
+                          disabled={isTesting}
+                          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 disabled:opacity-50"
+                        >
+                          {isTesting ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin text-brand" />
+                              <span>Testing OAuth Token...</span>
+                            </>
+                          ) : (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5 text-brand" />
+                              <span>Test Connection &amp; Quota</span>
+                            </>
+                          )}
+                        </button>
+
+                        {testRes && (
+                          <div className="flex-1">
+                            {testRes.success ? (
+                              <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                                  <span>
+                                    <strong>Connected:</strong> {testRes.storageInfo?.email || "Google Drive Active"}
+                                  </span>
+                                </div>
+                                {testRes.storageInfo && (
+                                  <span className="font-bold text-[11px] bg-emerald-100 px-2 py-0.5 rounded-md">
+                                    Quota: {testRes.storageInfo.usageGB} GB / {testRes.storageInfo.limitGB} GB used
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-700 flex items-center gap-2">
+                                <AlertCircle className="w-4 h-4 shrink-0" />
+                                <span>{testRes.error || "Token authorization failed"}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Add Account Button */}
+              <button
+                type="button"
+                onClick={handleAddDriveAccount}
+                className="w-full py-2.5 border-2 border-dashed border-blue-300 hover:border-brand rounded-2xl text-xs font-bold text-brand hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Another Failover Google Drive to Pool</span>
+              </button>
+
+              {/* Quick instructions */}
+              <div className="p-4 bg-white/80 rounded-xl border border-blue-200/60 text-[11px] text-slate-600 space-y-1">
+                <span className="font-bold text-slate-800 block">How to get a Google Drive Refresh Token:</span>
+                <p>
+                  1. In Google Cloud Console, create OAuth 2.0 Credentials (Authorized redirect: <code>https://developers.google.com/oauthplayground</code>).
+                </p>
+                <p>
+                  2. In Google OAuth Playground, select Drive API v3 (<code>https://www.googleapis.com/auth/drive.file</code>) and authorize.
+                </p>
+                <p>
+                  3. Exchange authorization code for refresh token, and paste the Client ID, Secret, and Refresh Token above.
+                </p>
+              </div>
             </div>
           </div>
         )}
