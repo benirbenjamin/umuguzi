@@ -21,6 +21,7 @@ export interface AuthUser {
   isVerified: boolean;
   twoFactorEnabled: boolean;
   referralCode: string;
+  referredById?: string | null;
 }
 
 export interface SiteSettings {

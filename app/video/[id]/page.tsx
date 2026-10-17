@@ -136,7 +136,7 @@ export default async function VideoPage({ params }: { params: { id: string } }) 
       embedUrl: video.videoUrl,
       author: {
         "@type": "Person",
-        name: video.channel.name,
+        name: video.channel?.name || "Umuguzipro",
       },
       publisher: {
         "@type": "Organization",

@@ -71,6 +71,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
         isVerified: true,
         twoFactorEnabled: true,
         referralCode: true,
+        referredById: true,
         isBanned: true,
       },
     });
@@ -87,6 +88,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
       isVerified: user.isVerified,
       twoFactorEnabled: user.twoFactorEnabled,
       referralCode: user.referralCode,
+      referredById: user.referredById,
     };
   } catch {
     return null;
