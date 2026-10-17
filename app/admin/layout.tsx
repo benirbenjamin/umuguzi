@@ -12,6 +12,8 @@ import {
   Settings,
   History,
   ArrowLeft,
+  Briefcase,
+  Store,
 } from "lucide-react";
 import { useApp } from "@/components/providers/AppProviders";
 
@@ -20,10 +22,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { settings } = useApp();
 
   const navItems = [
-    { label: "Overview", href: "/admin", icon: LayoutDashboard },
+    { label: "Overview & Analytics", href: "/admin", icon: LayoutDashboard },
     { label: "Site Customizer & Settings", href: "/admin/settings", icon: Settings },
-    { label: "Users & Access", href: "/admin/users", icon: Users },
+    { label: "Users & Analytics", href: "/admin/users", icon: Users },
     { label: "Video Moderation", href: "/admin/videos", icon: Video },
+    { label: "Services Management", href: "/admin/services", icon: Briefcase },
+    { label: "Digital Products", href: "/admin/products", icon: Store },
     { label: "Withdrawals & Payouts", href: "/admin/withdrawals", icon: Wallet },
     { label: "Audit Logs", href: "/admin/audit-logs", icon: History },
   ];

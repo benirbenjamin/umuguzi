@@ -13,10 +13,10 @@ export default async function AdminVideosPage() {
   const videos = await prisma.video.findMany({
     include: {
       channel: { select: { name: true, handle: true } },
-      user: { select: { displayName: true, username: true } },
+      user: { select: { id: true, displayName: true, username: true } },
     },
     orderBy: { createdAt: "desc" },
-    take: 60,
+    take: 300,
   });
 
   return <VideosModerationClient initialVideos={videos} />;

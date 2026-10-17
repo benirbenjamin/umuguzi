@@ -12,6 +12,9 @@ import {
   TrendingUp,
   Settings,
   ShieldCheck,
+  Eye,
+  Clock,
+  Store,
 } from "lucide-react";
 import { formatCurrency, formatCompactNumber } from "@/lib/utils";
 
@@ -25,20 +28,38 @@ export default async function AdminDashboardPage() {
     usersCount,
     videosCount,
     servicesCount,
+    productsCount,
     pendingWithdrawalsCount,
     ordersCount,
     totalPlatformWithdrawn,
+    viewsAgg,
+    allVideosDuration,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.video.count(),
     prisma.service.count(),
+    prisma.product.count(),
     prisma.withdrawal.count({ where: { status: "PENDING" } }),
     prisma.order.count(),
     prisma.withdrawal.aggregate({
       where: { status: "PAID" },
       _sum: { amount: true },
     }),
+    prisma.video.aggregate({
+      _sum: { views: true },
+    }),
+    prisma.video.findMany({
+      select: { views: true, duration: true },
+    }),
   ]);
+
+  let totalWatchSeconds = 0;
+  for (const v of allVideosDuration) {
+    const dur = v.duration > 0 ? v.duration : 180;
+    totalWatchSeconds += (v.views || 0) * (dur * 0.6);
+  }
+  const platformWatchHours = Math.floor(totalWatchSeconds / 3600);
+  const platformTotalViews = viewsAgg._sum.views || 0;
 
   return (
     <div className="space-y-8 max-w-6xl">
@@ -51,18 +72,36 @@ export default async function AdminDashboardPage() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-1">
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-1">
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-xs font-bold uppercase tracking-wider">Total Members</span>
             <Users className="w-4 h-4 text-blue-500" />
           </div>
           <span className="text-3xl font-black text-slate-900 block">{formatCompactNumber(usersCount)}</span>
           <Link href="/admin/users" className="text-[11px] font-bold text-brand hover:underline">
-            Manage Users &rarr;
+            Manage Users &amp; Analytics &rarr;
           </Link>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-1">
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-1">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider">Platform Visitors &amp; Views</span>
+            <Eye className="w-4 h-4 text-emerald-500" />
+          </div>
+          <span className="text-3xl font-black text-slate-900 block">{formatCompactNumber(platformTotalViews)}</span>
+          <span className="text-[11px] text-slate-400">Video impressions across Rwanda</span>
+        </div>
+
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-1">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider">Total Watch Time</span>
+            <Clock className="w-4 h-4 text-purple-500" />
+          </div>
+          <span className="text-3xl font-black text-slate-900 block">{platformWatchHours.toLocaleString()} hrs</span>
+          <span className="text-[11px] text-slate-400">Accumulated viewer engagement</span>
+        </div>
+
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-1">
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-xs font-bold uppercase tracking-wider">Videos Catalog</span>
             <Video className="w-4 h-4 text-indigo-500" />
@@ -73,18 +112,29 @@ export default async function AdminDashboardPage() {
           </Link>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-1">
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-1">
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-xs font-bold uppercase tracking-wider">Services Listed</span>
             <Briefcase className="w-4 h-4 text-emerald-500" />
           </div>
           <span className="text-3xl font-black text-slate-900 block">{formatCompactNumber(servicesCount)}</span>
-          <Link href="/services" className="text-[11px] font-bold text-brand hover:underline">
-            View Portal &rarr;
+          <Link href="/admin/services" className="text-[11px] font-bold text-emerald-600 hover:underline">
+            Manage Services &rarr;
           </Link>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-1">
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-1">
+          <div className="flex items-center justify-between text-slate-400">
+            <span className="text-xs font-bold uppercase tracking-wider">Digital Marketplace</span>
+            <Store className="w-4 h-4 text-pink-500" />
+          </div>
+          <span className="text-3xl font-black text-slate-900 block">{formatCompactNumber(productsCount)}</span>
+          <Link href="/admin/products" className="text-[11px] font-bold text-pink-600 hover:underline">
+            Manage Products &rarr;
+          </Link>
+        </div>
+
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-1">
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-xs font-bold uppercase tracking-wider">Pending Withdrawals</span>
             <AlertCircle className="w-4 h-4 text-amber-500" />
@@ -95,7 +145,7 @@ export default async function AdminDashboardPage() {
           </Link>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-1">
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-1">
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-xs font-bold uppercase tracking-wider">Digital Orders</span>
             <DollarSign className="w-4 h-4 text-purple-500" />
@@ -104,7 +154,7 @@ export default async function AdminDashboardPage() {
           <span className="text-[11px] text-slate-400">Completed purchases</span>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-1">
+        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-2xs space-y-1">
           <div className="flex items-center justify-between text-slate-400">
             <span className="text-xs font-bold uppercase tracking-wider">Total Disbursed</span>
             <ShieldCheck className="w-4 h-4 text-teal-600" />

@@ -7,19 +7,24 @@ import VideoPlayerClient from "./VideoPlayerClient";
 import prisma from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { VideoItem } from "@/types";
+import { RWANDA_SAMPLE_VIDEOS } from "@/lib/rwandaSampleData";
 
 export const dynamic = "force-dynamic";
 
 // Dynamic Google Search SEO Metadata
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   try {
-    const video = await prisma.video.findUnique({
+    let video: any = await prisma.video.findUnique({
       where: { id: params.id },
       include: {
         channel: { select: { name: true } },
         category: { select: { name: true } },
       },
     });
+
+    if (!video) {
+      video = RWANDA_SAMPLE_VIDEOS.find((v) => v.id === params.id || v.slug === params.id);
+    }
 
     if (!video) {
       return {
@@ -96,47 +101,73 @@ export default async function VideoPage({ params }: { params: { id: string } }) 
       },
     });
 
-    if (!video) {
+    let videoData: any = video;
+    let related: any[] = [];
+
+    if (!videoData) {
+      const sample = RWANDA_SAMPLE_VIDEOS.find((v) => v.id === params.id || v.slug === params.id);
+      if (sample) {
+        videoData = {
+          ...sample,
+          createdAt: new Date(sample.createdAt || Date.now()),
+          updatedAt: new Date(),
+          comments: [],
+        };
+        related = RWANDA_SAMPLE_VIDEOS.filter((v) => v.id !== sample.id).slice(0, 8);
+      }
+    }
+
+    if (!videoData) {
       notFound();
     }
 
     // Check if user owns entitlement
     let hasEntitlement = false;
-    if (user) {
-      const ent = await prisma.entitlement.findFirst({
-        where: { userId: user.id, videoId: video.id },
-      });
-      hasEntitlement = Boolean(ent);
+    if (user && videoData.id) {
+      try {
+        const ent = await prisma.entitlement.findFirst({
+          where: { userId: user.id, videoId: videoData.id },
+        });
+        hasEntitlement = Boolean(ent);
+      } catch {
+        hasEntitlement = false;
+      }
     }
 
-    const related = await prisma.video.findMany({
-      where: {
-        id: { not: video.id },
-        status: "APPROVED",
-        ...(video.categoryId ? { categoryId: video.categoryId } : {}),
-      },
-      include: {
-        channel: {
-          select: { id: true, name: true, handle: true, avatar: true, subscriberCount: true, isVerified: true },
-        },
-        category: { select: { id: true, name: true, slug: true } },
-      },
-      take: 8,
-    });
+    if (related.length === 0) {
+      try {
+        related = await prisma.video.findMany({
+          where: {
+            id: { not: videoData.id },
+            status: "APPROVED",
+            ...(videoData.categoryId ? { categoryId: videoData.categoryId } : {}),
+          },
+          include: {
+            channel: {
+              select: { id: true, name: true, handle: true, avatar: true, subscriberCount: true, isVerified: true },
+            },
+            category: { select: { id: true, name: true, slug: true } },
+          },
+          take: 8,
+        });
+      } catch {
+        related = RWANDA_SAMPLE_VIDEOS.filter((v) => v.id !== videoData.id).slice(0, 8);
+      }
+    }
 
     // Google Search Structured Data (JSON-LD VideoObject)
     const jsonLd = {
       "@context": "https://schema.org",
       "@type": "VideoObject",
-      name: video.title,
-      description: video.description || video.title,
-      thumbnailUrl: [video.thumbnailUrl || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800"],
-      uploadDate: video.createdAt.toISOString(),
-      duration: `PT${video.duration}S`,
-      embedUrl: video.videoUrl,
+      name: videoData.title,
+      description: videoData.description || videoData.title,
+      thumbnailUrl: [videoData.thumbnailUrl || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800"],
+      uploadDate: new Date(videoData.createdAt).toISOString(),
+      duration: `PT${videoData.duration || 300}S`,
+      embedUrl: videoData.videoUrl,
       author: {
         "@type": "Person",
-        name: video.channel?.name || "Umuguzipro",
+        name: videoData.channel?.name || "Umuguzipro",
       },
       publisher: {
         "@type": "Organization",
@@ -160,7 +191,7 @@ export default async function VideoPage({ params }: { params: { id: string } }) 
 
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <VideoPlayerClient
-            initialVideo={{ ...video, hasEntitlement }}
+            initialVideo={{ ...videoData, hasEntitlement }}
             relatedVideos={related as unknown as VideoItem[]}
           />
         </main>

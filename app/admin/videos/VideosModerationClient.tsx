@@ -2,12 +2,13 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { Check, X, Star, Trash2, ExternalLink, ShieldAlert } from "lucide-react";
+import { Check, X, Star, Trash2, ExternalLink, ShieldAlert, Search } from "lucide-react";
 import { timeAgo, formatCompactNumber } from "@/lib/utils";
 
 export default function VideosModerationClient({ initialVideos }: { initialVideos: any[] }) {
   const [videos, setVideos] = useState(initialVideos);
   const [filter, setFilter] = useState("ALL");
+  const [search, setSearch] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const handleAction = async (videoId: string, action: string) => {
@@ -46,8 +47,14 @@ export default function VideosModerationClient({ initialVideos }: { initialVideo
   };
 
   const filtered = videos.filter((v) => {
-    if (filter === "ALL") return true;
-    return v.status === filter;
+    const matchesSearch =
+      v.title.toLowerCase().includes(search.toLowerCase()) ||
+      v.channel?.name?.toLowerCase().includes(search.toLowerCase()) ||
+      v.user?.displayName?.toLowerCase().includes(search.toLowerCase()) ||
+      v.user?.username?.toLowerCase().includes(search.toLowerCase());
+
+    const matchesFilter = filter === "ALL" || v.status === filter;
+    return matchesSearch && matchesFilter;
   });
 
   return (
@@ -60,20 +67,33 @@ export default function VideosModerationClient({ initialVideos }: { initialVideo
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          {["ALL", "APPROVED", "PENDING", "REJECTED"].map((s) => (
-            <button
-              key={s}
-              onClick={() => setFilter(s)}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                filter === s
-                  ? "bg-slate-900 text-white shadow-sm"
-                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
-              }`}
-            >
-              {s}
-            </button>
-          ))}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-60">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search title, channel, creator..."
+              className="w-full pl-9 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand shadow-2xs"
+            />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            {["ALL", "APPROVED", "PENDING", "REJECTED"].map((s) => (
+              <button
+                key={s}
+                onClick={() => setFilter(s)}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                  filter === s
+                    ? "bg-slate-900 text-white shadow-sm"
+                    : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -106,7 +126,9 @@ export default function VideosModerationClient({ initialVideos }: { initialVideo
                         )}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-bold text-slate-900 truncate max-w-xs">{v.title}</p>
+                        <Link href={`/video/${v.id}`} target="_blank" className="font-bold text-slate-900 hover:text-brand transition-colors truncate max-w-xs block">
+                          {v.title}
+                        </Link>
                         <span className="text-[10px] text-slate-400 uppercase font-bold">
                           {v.accessType}
                         </span>
@@ -115,8 +137,17 @@ export default function VideosModerationClient({ initialVideos }: { initialVideo
                   </td>
 
                   <td className="py-3 px-4">
-                    <p className="font-bold text-slate-800">{v.channel?.name || "Direct"}</p>
-                    <p className="text-[11px] text-slate-400">@{v.user?.username}</p>
+                    {v.userId ? (
+                      <Link href={`/admin/users/${v.userId}`} className="hover:underline">
+                        <p className="font-bold text-slate-800">{v.channel?.name || "Direct"}</p>
+                        <p className="text-[11px] text-slate-400">@{v.user?.username || "creator"}</p>
+                      </Link>
+                    ) : (
+                      <>
+                        <p className="font-bold text-slate-800">{v.channel?.name || "Direct"}</p>
+                        <p className="text-[11px] text-slate-400">@{v.user?.username || "creator"}</p>
+                      </>
+                    )}
                   </td>
 
                   <td className="py-3 px-4">
