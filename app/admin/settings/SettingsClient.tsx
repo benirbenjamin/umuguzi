@@ -18,6 +18,7 @@ import {
   Layers,
   Megaphone,
   DollarSign,
+  Sparkles,
 } from "lucide-react";
 import { useApp } from "@/components/providers/AppProviders";
 import { SiteSettings } from "@/types";
